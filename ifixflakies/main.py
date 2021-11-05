@@ -26,8 +26,10 @@ def parse_args():
                         help="type of the target test: victim(default) or brittle")
     parser.add_argument('-s', dest="scope", required=False, default="session",
                         help="scope of seeking: session(default), module or class")
-    parser.add_argument('--nverd', dest="nverd", type=int, required=False, default=10,
+    parser.add_argument('--verdict', dest="verdict", type=int, required=False, default=10,
                         help="times of run when verdicting a single test")
+    parser.add_argument('--verify', dest="verify", type=int, required=False, default=4,
+                        help="times of run when verifying a polluter, state-setter, or cleaner")
     parser.add_argument('--maxp', dest="maxp", type=int, required=False, default=0,
                         help="the maximum number of polluters taken into consideration")
 
@@ -60,7 +62,7 @@ def main():
         os.makedirs(CACHE_DIR)
 
     print("============================= VERDICT =============================")
-    verd = verdict(test, args.nverd)
+    verd = verdict(test, args.verdict)
     print(test, "is a", verd+".")
     if args.verdict_only:
         exit(0)
@@ -82,7 +84,7 @@ def main():
     task_type = "polluter" if args.type == "victim" else "state-setter"
     print("============================= {} =============================".format(task_type.upper()))
     task_scope = args.scope
-    polluter_or_state_setter = find_polluter_or_state_setter(test_list, test, task_type, task_scope)
+    polluter_or_state_setter = find_polluter_or_state_setter(test_list, test, task_type, task_scope, args.verify)
     if polluter_or_state_setter:
         print(len(polluter_or_state_setter), task_type+'(s)', "for", test, "found:")
         for i, itest in enumerate(polluter_or_state_setter):
@@ -105,7 +107,7 @@ def main():
     print("============================= CLEANER =============================")
     for i, pos in enumerate(polluter_or_state_setter):
         print("{} / {}  Detecting cleaners for polluter {}.".format(i+1, len(polluter_or_state_setter), pos))
-        cleaner = find_cleaner(test_list, pos, test, "session")
+        cleaner = find_cleaner(test_list, pos, test, "session", args.verify)
         print("{} cleaner(s) for polluter {} found.".format(len(cleaner), pos))
         if not args.counting_cleaner_only:
             for i, itest in enumerate(cleaner):
