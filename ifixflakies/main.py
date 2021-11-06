@@ -15,20 +15,18 @@ def parse_args():
             A tool for automatically fixing order-dependency flaky tests in python.
             """,)
     parser.add_argument("target_test", help="the target test id")
-    parser.add_argument('-c', dest="collect_only", required=False, action="store_true", help="collect only")
-    parser.add_argument('-v', dest="verdict_only", required=False, action="store_true", help="verdict only")
-    parser.add_argument('-p', dest="polluter_only", required=False, action="store_true", help="polluter only")
+    parser.add_argument('-co', '--collect-only', dest="collect_only", required=False, action="store_true", help="collect only")
+    parser.add_argument('-vo', '--verdict-only', dest="verdict_only", required=False, action="store_true", help="verdict only")
+    parser.add_argument('-po', '--polluter-only', dest="polluter_only", required=False, action="store_true", help="polluter only")
     parser.add_argument('-e', dest="counting_cleaner_only", required=False, action="store_true",
                         help="only counting the number of cleaners, without printing them to the console")
-    parser.add_argument('-q', dest="time_count", required=False, action="store_true",
-                        help="counting the time for entire test suite")
-    parser.add_argument('-t', dest="type", required=False, default="victim",
-                        help="type of the target test: victim(default) or brittle")
+    parser.add_argument('-t', dest="time_count", required=False, action="store_true",
+                        help="counting the time for entire test suite before running the suite")
     parser.add_argument('-s', dest="scope", required=False, default="session",
                         help="scope of seeking: session(default), module or class")
-    parser.add_argument('--verdict', dest="verdict", type=int, required=False, default=10,
+    parser.add_argument('--nverdict', dest="verdict", type=int, required=False, default=10,
                         help="times of run when verdicting a single test")
-    parser.add_argument('--verify', dest="verify", type=int, required=False, default=4,
+    parser.add_argument('--nverify', dest="verify", type=int, required=False, default=4,
                         help="times of run when verifying a polluter, state-setter, or cleaner")
     parser.add_argument('--maxp', dest="maxp", type=int, required=False, default=0,
                         help="the maximum number of polluters taken into consideration")
@@ -46,7 +44,6 @@ def main():
     if args.time_count:
         print("============================= TIME =============================")
         pytest.main([])
-        exit(0)
 
 
     if args.collect_only:
@@ -68,20 +65,7 @@ def main():
         exit(0)
     print()
 
-    if args.type not in ["victim", "brittle"]:
-        print("[ERROR]", "Cannot recognize argument TYPE: victim(default) or brittle")
-        exit(2)
-
-    if (verd == BRITTLE and args.type != 'brittle') or (verd == VICTIM and args.type != 'victim'):
-        print("[ERROR]", test, "is not a", verd+",", "program exits.")
-        exit(1)
-
-    if args.scope not in ["session","module","class"]:
-        print("[ERROR]", "Cannot recognize argument SCOPE: session(default), module or class")
-        exit(2)
-
-
-    task_type = "polluter" if args.type == "victim" else "state-setter"
+    task_type = "polluter" if verd == VICTIM else "state-setter"
     print("============================= {} =============================".format(task_type.upper()))
     task_scope = args.scope
     polluter_or_state_setter = find_polluter_or_state_setter(test_list, test, task_type, task_scope, args.verify)
@@ -91,6 +75,7 @@ def main():
             print("[{}]  {}".format(i+1, itest))
     else:
         print("No", task_type, "for", test, "found.")
+        exit(0)
     print()
     # input("Press Enter to continue...")
 
