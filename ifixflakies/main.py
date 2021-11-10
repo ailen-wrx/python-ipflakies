@@ -6,7 +6,6 @@ from ifixflakies.initializers import *
 from py import io
 import pytest
 import os
-import pandas as pd
 import shutil
 import random
 
@@ -22,6 +21,8 @@ def parse_args():
                         help="only counting the number of cleaners, without printing them to the console")
     parser.add_argument('-t', dest="time_count", required=False, action="store_true",
                         help="counting the time for entire test suite before running the suite")
+    parser.add_argument('-p', dest="programmatic", required=False, action="store_true",
+                        help="to run pytest programmatically")
     parser.add_argument('-s', dest="scope", required=False, default="session",
                         help="scope of seeking: session(default), module or class")
     parser.add_argument('--nverdict', dest="verdict", type=int, required=False, default=10,
@@ -39,11 +40,18 @@ def parse_args():
 def main():
     args = parse_args()
     test = args.target_test
-    test_list = collect_tests()
+
+    pytest_method = pytest_pro if args.programmatic else pytest_cmd
+    if args.verdict <= 1:
+        print("[ERROR] Rounds of verdicting should be no less than 2.")
+
+    test_list = collect_tests(pytest_method)
+
 
     if args.time_count:
         print("============================= TIME =============================")
-        pytest.main([])
+        os.system("python3 -m pytest")
+        # pytest.main([])
 
 
     if args.collect_only:
@@ -59,7 +67,7 @@ def main():
         os.makedirs(CACHE_DIR)
 
     print("============================= VERDICT =============================")
-    verd = verdict(test, args.verdict)
+    verd = verdict(test, args.verdict, pytest_method)
     print(test, "is a", verd+".")
     if args.verdict_only:
         exit(0)
@@ -68,7 +76,7 @@ def main():
     task_type = "polluter" if verd == VICTIM else "state-setter"
     print("============================= {} =============================".format(task_type.upper()))
     task_scope = args.scope
-    polluter_or_state_setter = find_polluter_or_state_setter(test_list, test, task_type, task_scope, args.verify)
+    polluter_or_state_setter = find_polluter_or_state_setter(pytest_method, test_list, test, task_type, task_scope, args.verify)
     if polluter_or_state_setter:
         print(len(polluter_or_state_setter), task_type+'(s)', "for", test, "found:")
         for i, itest in enumerate(polluter_or_state_setter):
@@ -92,7 +100,7 @@ def main():
     print("============================= CLEANER =============================")
     for i, pos in enumerate(polluter_or_state_setter):
         print("{} / {}  Detecting cleaners for polluter {}.".format(i+1, len(polluter_or_state_setter), pos))
-        cleaner = find_cleaner(test_list, pos, test, "session", args.verify)
+        cleaner = find_cleaner(pytest_method, test_list, pos, test, "session", args.verify)
         print("{} cleaner(s) for polluter {} found.".format(len(cleaner), pos))
         if not args.counting_cleaner_only:
             for i, itest in enumerate(cleaner):

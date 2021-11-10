@@ -1,5 +1,9 @@
 import sys
 import re
+import csv
+import pytest
+from py import io
+from subprocess import Popen, PIPE
 
 CACHE_DIR = './cache/ifixflakies/'
 
@@ -16,6 +20,35 @@ def split_test(test):
     else:
         # TODO: unexpected test id format
         return None
+
+
+def pytestcsv(file):
+    res = dict()
+    COLUMNS = ['id','module','name','file','doc','markers','status','message','duration']
+    with open(file, 'rt') as f:
+        for row in csv.reader(f):
+            if row[0] == 'id':
+                for i in range(len(COLUMNS)):
+                    res[COLUMNS[i]] = []
+            else:
+                for i in range(len(COLUMNS)):
+                    res[COLUMNS[i]].append(row[i])
+    return res
+
+
+def pytest_pro(args):
+    capture = io.StdCapture()
+    pytest.main(args)
+    std, err = capture.reset()
+    return std, err
+
+
+def pytest_cmd(args):
+    mainargs = ["python3", "-m", "pytest"] + args
+    process = Popen(mainargs, stdout=PIPE, stderr=PIPE)
+    std, err = process.communicate()
+    return std.decode("utf-8"), err.decode("utf-8")
+
 
 class ProgressBar(object):
     DEFAULT = 'Progress: %(bar)s %(percent)3d%%'

@@ -2,18 +2,20 @@
 from ifixflakies.utils import *
 from py import io
 import hashlib
-import pytest
-import pandas as pd
 
 
-def verify(tests, type, rounds):
+def verify(tests, type, rounds, pytest_method):
     for i in range(rounds):
         task = "verdict_multitests"
         pytestargs = tests + ["--csv", CACHE_DIR + task + '/{}.csv'.format(i)]
         capture = io.StdCapture()
         pytest.main(pytestargs)
-        capture.reset()
-        paired_test = pd.read_csv(CACHE_DIR + task + '/{}.csv'.format(i))
+        std, err = capture.reset()
+        try:
+            paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(i))
+        except:
+            print("\n{}".format(std))
+            continue
         status = paired_test['status']
         if status[len(status)-1] == "passed" and type == "polluter":
             return 0
@@ -22,7 +24,7 @@ def verify(tests, type, rounds):
     return 1
 
 
-def find_polluter_or_state_setter(test_list, victim_brittle, task="polluter", scope='session', nverify=4):
+def find_polluter_or_state_setter(pytest_method, test_list, victim_brittle, task="polluter", scope='session', nverify=4):
     test_prefix = ""
     splited = split_test(victim_brittle)
     if scope == "module":
@@ -40,14 +42,16 @@ def find_polluter_or_state_setter(test_list, victim_brittle, task="polluter", sc
     progress = ProgressBar(len(test_list), fmt=ProgressBar.FULL)
     for test in test_list:
         md5 = hashlib.md5(test.encode(encoding='UTF-8')).hexdigest()
-        capture = io.StdCapture()
-        pytest.main([test, victim_brittle, '--csv', CACHE_DIR + task + '/{}.csv'.format(md5)])
-        capture.reset()
-        paired_test = pd.read_csv(CACHE_DIR + task + '/{}.csv'.format(md5))
+        std, err = pytest_method([test, victim_brittle, '--csv', CACHE_DIR + task + '/{}.csv'.format(md5)])
+        try:
+            paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(md5))
+        except:
+            print("\n{}".format(std))
+            continue
         status = paired_test['status']
         if task == "polluter":
             if status[len(status)-1] != "passed":
-                if verify([test, victim_brittle], "polluter", nverify):
+                if verify([test, victim_brittle], "polluter", nverify, pytest_method):
                     polluter_or_state_setter_list.append(test)
         elif task == "state-setter":
             if status[len(status)-1] == "passed":
@@ -58,10 +62,8 @@ def find_polluter_or_state_setter(test_list, victim_brittle, task="polluter", sc
     print()
     return polluter_or_state_setter_list
 
-def find_cleaner(test_list, polluter, victim, scope='session', nverify=4):
-
+def find_cleaner(pytest_method, test_list, polluter, victim, scope='session', nverify=4):
     task = "cleaner"
-
     test_prefix = ""
     splited = split_test(victim)
     if scope == "module":
@@ -79,13 +81,15 @@ def find_cleaner(test_list, polluter, victim, scope='session', nverify=4):
     progress = ProgressBar(len(test_list), fmt=ProgressBar.FULL)
     for test in test_list:
         md5 = hashlib.md5((polluter+"-"+test).encode(encoding='UTF-8')).hexdigest()
-        capture = io.StdCapture()
-        pytest.main([polluter, test, victim, '--csv', CACHE_DIR + task + '/{}.csv'.format(md5)])
-        capture.reset()
-        paired_test = pd.read_csv(CACHE_DIR + task + '/{}.csv'.format(md5))
+        std, err = pytest_method([polluter, test, victim, '--csv', CACHE_DIR + task + '/{}.csv'.format(md5)])
+        try:
+            paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(md5))
+        except:
+            print("\n{}".format(std))
+            continue
         status = paired_test['status']
         if status[len(status)-1] == "passed":
-            if verify([polluter, test, victim], "cleaner", nverify):
+            if verify([polluter, test, victim], "cleaner", nverify, pytest_method):
                 cleaner_list.append(test)
         progress.current += 1
         progress()
