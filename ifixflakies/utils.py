@@ -7,16 +7,18 @@ from subprocess import Popen, PIPE
 
 CACHE_DIR = './cache/ifixflakies/'
 
-def split_test(test):
+def split_test(test, rmpara=False):
     list = str(test).split("::")
     if len(list) == 3:
         return {"module":list[0],
                 "class":list[1],
-                "function":list[2]}
+                "function":list[2] if not rmpara else
+                list[2][:list[2].index('[')]}
     elif len(list) == 2:
         return {"module":list[0],
                 "class": None,
-                "function":list[1]}
+                "function":list[1] if not rmpara else
+                list[1][:list[1].index('[')]}
     else:
         # TODO: unexpected test id format
         return None

@@ -4,15 +4,14 @@ from py import io
 import hashlib
 
 
-def verify(tests, type, rounds, pytest_method):
+def verify(pytest_method, tests, type, rounds=2):
+    task = "verdict_multitests"
     for i in range(rounds):
-        task = "verdict_multitests"
-        pytestargs = tests + ["--csv", CACHE_DIR + task + '/{}.csv'.format(i)]
-        capture = io.StdCapture()
-        pytest.main(pytestargs)
-        std, err = capture.reset()
+        md5 = hashlib.md5((",".join(tests)).encode(encoding='UTF-8')).hexdigest()
+        pytestargs = tests + ["--csv", CACHE_DIR + task + '/{}.csv'.format(md5)]
+        std, err = pytest_method(pytestargs)
         try:
-            paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(i))
+            paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(md5))
         except:
             print("\n{}".format(std))
             continue
@@ -51,11 +50,11 @@ def find_polluter_or_state_setter(pytest_method, test_list, victim_brittle, task
         status = paired_test['status']
         if task == "polluter":
             if status[len(status)-1] != "passed":
-                if verify([test, victim_brittle], "polluter", nverify, pytest_method):
+                if verify(pytest_method, [test, victim_brittle], "polluter", nverify):
                     polluter_or_state_setter_list.append(test)
         elif task == "state-setter":
             if status[len(status)-1] == "passed":
-                if verify([test, victim_brittle], "state-setter", nverify):
+                if verify(pytest_method, [test, victim_brittle], "state-setter", nverify):
                     polluter_or_state_setter_list.append(test)
         progress.current += 1
         progress()
@@ -89,7 +88,7 @@ def find_cleaner(pytest_method, test_list, polluter, victim, scope='session', nv
             continue
         status = paired_test['status']
         if status[len(status)-1] == "passed":
-            if verify([polluter, test, victim], "cleaner", nverify, pytest_method):
+            if verify(pytest_method, [polluter, test, victim], "cleaner", nverify):
                 cleaner_list.append(test)
         progress.current += 1
         progress()
