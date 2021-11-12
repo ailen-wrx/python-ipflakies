@@ -3,6 +3,7 @@ import argparse
 
 from ifixflakies.detector import *
 from ifixflakies.initializers import *
+from ifixflakies.random import * 
 from py import io
 import pytest
 import os
@@ -23,6 +24,8 @@ def parse_args():
                         help="counting the time for entire test suite before running the suite")
     parser.add_argument('-p', dest="programmatic", required=False, action="store_true",
                         help="to run pytest programmatically")
+    parser.add_argument('-r', dest="random", required=False, action="store_true",
+                        help="random analysis")
     parser.add_argument('-s', dest="scope", required=False, default="session",
                         help="scope of seeking: session(default), module or class")
     parser.add_argument('--nverdict', dest="verdict", type=int, required=False, default=10,
@@ -52,6 +55,14 @@ def main():
         print("============================= TIME =============================")
         os.system("python3 -m pytest")
         # pytest.main([])
+
+
+    if args.random:
+        print("============================= RANDOM =============================")
+        for i in range(100):
+            random_analysis(pytest_method, test, i)
+
+        exit(0)
 
 
     if args.collect_only:

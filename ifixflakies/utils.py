@@ -38,18 +38,27 @@ def pytestcsv(file):
     return res
 
 
-def pytest_pro(args):
-    capture = io.StdCapture()
-    pytest.main(args)
-    std, err = capture.reset()
-    return std, err
+def pytest_pro(args, stdout=False):
+    if stdout:
+        pytest.main(args)
+        return None, None
+    else:
+        capture = io.StdCapture()
+        pytest.main(args)
+        std, err = capture.reset()
+        return std, err
 
 
-def pytest_cmd(args):
+def pytest_cmd(args, stdout=False):
     mainargs = ["python3", "-m", "pytest"] + args
-    process = Popen(mainargs, stdout=PIPE, stderr=PIPE)
-    std, err = process.communicate()
-    return std.decode("utf-8"), err.decode("utf-8")
+    if stdout:
+        process = Popen(mainargs)
+        std, err = process.communicate()
+        return None, None
+    else:
+        process = Popen(mainargs, stdout=PIPE, stderr=PIPE)
+        std, err = process.communicate()
+        return std.decode("utf-8"), err.decode("utf-8")
 
 
 class ProgressBar(object):
