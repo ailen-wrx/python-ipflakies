@@ -18,7 +18,7 @@ def verify(pytest_method, tests, type, rounds=2):
         status = paired_test['status']
         if status[len(status)-1] == "passed" and type == "polluter":
             return 0
-        if status[len(status)-1] != "passed" and (type == "state-setter" or type == "cleaner"):
+        if status[len(status)-1] != "passed" and (type == "state-setter" or type == "cleaner" or type == "patch"):
             return 0
     return 1
 

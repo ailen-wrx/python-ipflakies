@@ -7,6 +7,7 @@ import os
 import shutil
 import sys
 from ifixflakies.utils.py import *
+from ifixflakies.detector import verify
 from ifixflakies.unparse import Unparser
 
 class get_origin_astInfo(ast.NodeVisitor):
