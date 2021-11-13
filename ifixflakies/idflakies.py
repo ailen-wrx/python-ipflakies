@@ -18,8 +18,8 @@ def idflakies(pytest_method, nrounds, nverify=5):
     flakies = dict()
 
     for it in range(nrounds):
-        print("========================= iDFlakies ROUND {} =========================".format(it))
-        pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it)]
+        print("----------------------- iDFlakies ROUND {}/{} -----------------------".format(it+1, nrounds))
+        pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it), "-k", "not {}".format(res_dir_name)]
         std, err = pytest_method(pytestargs, stdout=False)
         try:
             random_order = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(it))

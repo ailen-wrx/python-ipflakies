@@ -4,14 +4,14 @@ import os
 
 ERRORS_FLAG = "= ERRORS ="
 WARNING_FLAG = "= warnings summary ="
-PYTEST_CO_STAT_FLAG = ["tests collected in", "tests ran in"]
+PYTEST_CO_STAT_FLAG = ["tests collected ", "tests ran in"]
 
 BRITTLE = "brittle"
 VICTIM = "victim"
 
 
 def collect_tests(pytest_method):
-    std, err = pytest_method(['--collect-only', '-q'])
+    std, err = pytest_method(['--collect-only', '-q', "-k", "not {}".format(res_dir_name)])
     test_list = list(filter(lambda x: x, re.split(r'\n\s*(?!\"[^()]*\))', std)))
     test_list = list(filter(lambda x: x, std.split("\n")))
     err_ind = [i for i, x in enumerate(test_list) if ERRORS_FLAG in x]

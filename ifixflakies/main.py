@@ -5,8 +5,7 @@ from ifixflakies.detector import *
 from ifixflakies.initializers import *
 from ifixflakies.random import * 
 from ifixflakies.idflakies import *
-from py import io
-import pytest
+from ifixflakies.patcher import *
 import os
 import json
 import shutil
@@ -21,6 +20,7 @@ def save_and_exit():
     with open(SAVE_DIR+'Minimized.json', 'w') as f:
         json.dump(data, f)
     shutil.rmtree(CACHE_DIR)
+    print("Result data written into {}.".format(SAVE_DIR))
     exit(0)
 
 
@@ -32,8 +32,10 @@ def parse_args():
                         help="the order-dependency test to be fixed")
     parser.add_argument('-i', '--it', dest="iterations", type=int, required=False, default=100,
                         help="times of run when executing random tests")
-    parser.add_argument('-co', '--collect', dest="collect", required=False, action="store_true", help="collect and print all tests")
-    parser.add_argument('-po', '--polluter', dest="polluter", required=False, action="store_true", help="only detect polluters")
+    parser.add_argument('-co', '--collect', dest="collect", required=False, action="store_true"
+                        , help="collect and print all tests")
+    parser.add_argument('-po', '--polluter', dest="polluter", required=False, action="store_true"
+                        , help="only detect polluters without cleaners")
     parser.add_argument('-t', '--time', dest="time_count", required=False, action="store_true",
                         help="run the entire test suite and record the time")
     parser.add_argument('-p', dest="programmatic", required=False, action="store_true",
@@ -63,14 +65,22 @@ def main():
         print("[ERROR] Rounds of verdicting should be no less than 2.")
 
     test_list = collect_tests(pytest_method)
+
+    if not os.path.exists(SAVE_DIR):
+        os.makedirs(SAVE_DIR)
+
     if not test:
         flakies = idflakies(pytest_method, args.iterations)
         with open(SAVE_DIR+'Flakies.json', 'w') as f:
             json.dump(flakies, f)
+        print("Result data written into {}.".format(SAVE_DIR))
         exit(0)
-
     elif test not in test_list:
         exit(1)
+
+    if not os.path.exists(CACHE_DIR):
+        os.makedirs(CACHE_DIR)
+
 
     print("============================ iFixFlakies ============================")
 
@@ -83,22 +93,14 @@ def main():
         print("============================= COLLECT =============================")
         for i, test in enumerate(test_list):
             print("[{}]  {}".format(i+1, test))
-        print(len(test_list), "tests collected.")
-        exit(0)
     print(len(test_list), "unit tests collected.")
 
-    
-    if not os.path.exists(SAVE_DIR):
-        os.makedirs(SAVE_DIR)
-
-    if not os.path.exists(CACHE_DIR):
-        os.makedirs(CACHE_DIR)
 
 
     if (args.random):
         print("============================= RANDOM =============================")
         for i in range(args.iterations):
-            if random_analysis(pytest_method, test, i):
+            if random_analysis(pytest_method, test, i, args.iterations):
                 break
         save_and_exit()
 
@@ -139,6 +141,7 @@ def main():
         save_and_exit()
     
     data["cleaner"] = dict()
+    data["patch"] = dict()
 
     if args.maxp and args.maxp < len(polluter_or_state_setter):
         print("List of polluter is truncated to size of", args.maxp)
@@ -146,16 +149,22 @@ def main():
         polluter_or_state_setter = polluter_or_state_setter[:args.maxp]
 
 
-    print("============================= CLEANER =============================")
+    print("========================== CLEANER & PATCH ==========================")
     for i, pos in enumerate(polluter_or_state_setter):
         print("{} / {}  Detecting cleaners for polluter {}.".format(i+1, len(polluter_or_state_setter), pos))
         cleaner = find_cleaner(pytest_method, test_list, pos, test, "session", args.verify)
         print("{} cleaner(s) for polluter {} found.".format(len(cleaner), pos))
         data["cleaner"][pos] = []
+        data["patch"][pos] = []
         for i, itest in enumerate(cleaner):
             print("[{}]  {}".format(i+1, itest))
             data["cleaner"][pos].append(itest)
+            patch, patchfile = fix_victim(pytest_method, pos, itest, test)
+            if patch:
+                print("[PATCH {}]".format(i+1))
+                print(patch)
+                data["patch"][pos].append({"diff": patch, "file": patchfile})
         print()
-    print("-------------------------------------------------------------------")
+        print("-------------------------------------------------------------------")
 
     save_and_exit()

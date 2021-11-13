@@ -7,20 +7,21 @@ from py import io
 from subprocess import Popen, PIPE
 
 CACHE_DIR = './cache/ifixflakies/'
-SAVE_DIR = './ifixflakies_result/'
+res_dir_name = 'ifixflakies_result'
+SAVE_DIR = './{}/'.format(res_dir_name)
 
 def split_test(test, rmpara=False):
     list = str(test).split("::")
-    if len(list) == 3:
+    if len(list) == 3 or len(list) == 2:
+        index = list[len(list)-1].index('[') if "[" in list[len(list)-1] \
+            else len(list[len(list)-1])
+        if index:
+            para = list[len(list)-1][index:]
+            func = list[len(list)-1][:index]
         return {"module":list[0],
-                "class":list[1],
-                "function":list[2] if not rmpara else
-                list[2][:list[2].index('[')]}
-    elif len(list) == 2:
-        return {"module":list[0],
-                "class": None,
-                "function":list[1] if not rmpara else
-                list[1][:list[1].index('[')]}
+                "class":list[1] if len(list)==3 else None,
+                "function":func,
+                "para": para if para else None}
     else:
         # TODO: unexpected test id format
         return None

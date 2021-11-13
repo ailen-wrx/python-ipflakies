@@ -3,11 +3,11 @@ from py import io
 import hashlib
 
 
-def random_analysis(pytest_method, target, it, nviter=2):
+def random_analysis(pytest_method, target, it, tot, nviter=2):
     task = "random"
 
-    print("========================= RANDOM ROUND {} =========================".format(it))
-    pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it)]
+    print("======================= RANDOM ROUND {}/{} =======================".format(it+1, tot))
+    pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it), "-k", "not {}".format(res_dir_name)]
     std, err = pytest_method(pytestargs, stdout=False)
     try:
         random_order = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(it))
