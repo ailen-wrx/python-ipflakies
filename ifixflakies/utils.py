@@ -51,7 +51,7 @@ def pytest_pro(args, stdout=False):
 
 
 def pytest_cmd(args, stdout=False):
-    mainargs = ["python3", "-m", "pytest"] + args
+    mainargs = ["python3", "-m", "pytest", "--cache-clear"] + args
     if stdout:
         process = Popen(mainargs)
         std, err = process.communicate()
