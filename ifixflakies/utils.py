@@ -2,6 +2,7 @@ import sys
 import re
 import csv
 import pytest
+import hashlib
 from py import io
 from subprocess import Popen, PIPE
 
@@ -59,6 +60,25 @@ def pytest_cmd(args, stdout=False):
         process = Popen(mainargs, stdout=PIPE, stderr=PIPE)
         std, err = process.communicate()
         return std.decode("utf-8"), err.decode("utf-8")
+
+
+def verify(pytest_method, tests, assume, rounds=2):
+    task = "verify"
+    for i in range(rounds):
+        md5 = hashlib.md5((",".join(tests)).encode(encoding='UTF-8')).hexdigest()
+        pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format(md5)] + tests
+        std, err = pytest_method(pytestargs)
+        try:
+            paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(md5))
+        except:
+            print("\n{}".format(std))
+            continue
+        status = paired_test['status']
+        if status[len(status)-1] == "passed" and assume != "passed":
+            return 0
+        if status[len(status)-1] != "passed" and assume == "passed":
+            return 0
+    return 1
 
 
 class ProgressBar(object):

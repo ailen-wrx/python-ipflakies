@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument('-p', dest="programmatic", required=False, action="store_true",
                         help="to run pytest programmatically")
     parser.add_argument('-r', dest="random", required=False, action="store_true",
-                        help="random analysis")
+                        help="do random analysis directly")
     parser.add_argument('-s', dest="scope", required=False, default="session",
                         help="scope of seeking: session(default), module or class")
     parser.add_argument('--nverdict', dest="verdict", type=int, required=False, default=10,
@@ -56,15 +56,6 @@ def main():
         os.system("python3 -m pytest")
         # pytest.main([])
 
-
-    if args.random:
-        print("============================= RANDOM =============================")
-        for i in range(100):
-            random_analysis(pytest_method, test, i)
-
-        exit(0)
-
-
     if args.collect_only:
         print("============================= COLLECT =============================")
         for i, test in enumerate(test_list):
@@ -76,6 +67,14 @@ def main():
 
     if not os.path.exists(CACHE_DIR):
         os.makedirs(CACHE_DIR)
+
+
+    if (args.random):
+        print("============================= RANDOM =============================")
+        for i in range(100):
+            if random_analysis(pytest_method, test, i):
+                break
+        exit(0)
 
     print("============================= VERDICT =============================")
     verd = verdict(test, args.verdict, pytest_method)
@@ -94,6 +93,11 @@ def main():
             print("[{}]  {}".format(i+1, itest))
     else:
         print("No", task_type, "for", test, "found.")
+        if verd == VICTIM:
+            print("============================= RANDOM =============================")
+            for i in range(100):
+                if random_analysis(pytest_method, test, i):
+                    break
         exit(0)
     print()
     # input("Press Enter to continue...")
