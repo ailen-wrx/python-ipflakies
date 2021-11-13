@@ -10,11 +10,9 @@ import sys
 import time
 import pytest
 import pandas as pd
-from ifixflakies.main import main
-from unparse import Unparser
 from io import StringIO
 import hashlib, binascii
-from ifixflakies.utils.py import *
+from ifixflakies.utils import *
 from ifixflakies.unparse import Unparser
 
 class get_origin_astInfo(ast.NodeVisitor):
@@ -28,13 +26,6 @@ class get_origin_astInfo(ast.NodeVisitor):
                 self.import_num += 1
         return self.import_num
 
-def sequence(pytest_method, polluter,cleaner_list,victim):
-    whether_fixed = False
-    for each in cleaner_list:
-        if fix_victim(pytest_method,polluter,each,victim):
-            whether_fixed = True
-            break
-    #verify if other polluter can be fixed
     
 def get_cleaner_import_list(tree_cleaner,tree_victim):
     cleaner_import_list=[]
@@ -122,15 +113,15 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
     cleaner_test = split_test(cleaner, rmpara=True)
 
     with open(victim_test["module"]) as f_victim:
-        victim_tree = ast.parse(victim.read())
+        victim_tree = ast.parse(f_victim.read())
 
     with open(cleaner_test["module"]) as f_cleaner:
-        cleaner_tree = ast.parse(cleaner.read())
+        cleaner_tree = ast.parse(f_cleaner.read())
         cleaner_info = get_origin_astInfo(cleaner_tree)
         cleaner_import_num = cleaner_info.get_import_num()
 
-    index = victim.index('.')
-    fixed_file = victim["module"].insert(index,'patch')
+    dotindex = victim_test["module"].index('.')
+    combination_path = victim_test["module"][:dotindex]+'_patch.py'
 
     diff=None
     minimal_patch_file=None
@@ -143,9 +134,10 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
     final_patch_content=''
 
     
-    if verify(pytest_method, [polluter, cleaner, victim], "cleaner") and verify(pytest_method, [polluter, victim], "polluter"):
+    if verify(pytest_method, [polluter, cleaner, victim], "passed") and verify(pytest_method, [polluter, victim], "failed"):
         
         can_copy_work = False
+        print('tmp')
 
         # get import module from cleaner test
         cleaner_import_objs = get_cleaner_import_list(cleaner_tree,victim_tree)
@@ -153,7 +145,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
             victim_tree.body.insert(0,each_obj)
 
         # get helper code from cleaner test body
-        helper_node_body = get_cleaner_helper_node(cleaner_tree,cleaner_test).body
+        helper_node_body = get_cleaner_helper_node(cleaner_tree,cleaner_test)
 
         # get victim body
         victim_node_body = get_victim_test_node(victim_tree,victim_test).body
@@ -181,12 +173,18 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
         except IndentationError:
             can_copy_work=False
 
-        with open(fixed_file, "w") as combination:
+        with open(combination_path, "w") as combination:
             combination.write(edited_content)
 
-        tmp_fixed_victim=fixed_file + '::' + '::'.join(victim_test[1:])
+
+        if victim_test["class"]:
+            tmp_fixed_victim=combination_path + '::'+victim_test["class"]+'::'+victim_test["function"]
+        else:
+            tmp_fixed_victim=combination_path +'::'+victim_test["function"]
+
         result =  verify(pytest_method, [polluter, tmp_fixed_victim], "polluter")
-        victim_tree.remove(helper_node_body)
+        
+        victim_node_body.remove(helper_node_body)
 
         if result:
             can_copy_work = True
@@ -211,7 +209,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
                 tmp_victim_node_body = victim_node_body
 
                 try:
-                    tmp_victim_tree.insert(0, this_round_insert_node)
+                    tmp_victim_node_body.insert(0, this_round_insert_node)
                     ast.fix_missing_locations(tmp_victim_tree)
                     can_be_inserted=True
 
@@ -222,6 +220,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
                 Unparser(this_round_insert_node, tmp_buf)
                 tmp_buf.seek(0)
                 tmp_content = tmp_buf.read()
+
 
                 buf = StringIO()
                 Unparser(tmp_victim_tree, buf)
@@ -234,14 +233,16 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
                     combination.write(edited_content)
 
                 if can_be_inserted:
-                    tmp_victim_tree.remove(this_round_insert_node)
+                    tmp_victim_node_body.remove(this_round_insert_node)
                 
                 if victim_test["class"]:
-                    tmp_fixed_victim=combination_path + '::'+victim_test["class"]+'::'+victim_test["test"]
+                    tmp_fixed_victim=combination_path + '::'+victim_test["class"]+'::'+victim_test["function"]
                 else:
-                    tmp_fixed_victim=combination_path +'::'+victim_test["test"]
+                    tmp_fixed_victim=combination_path +'::'+victim_test["function"]
 
-                can_patch_work =  verify(pytest_method, [polluter, tmp_fixed_victim], "polluter")
+
+                can_patch_work =  verify(pytest_method, [polluter, tmp_fixed_victim], "passed")
+                print(can_patch_work,tmp_fixed_victim)
                 cache_in_tests.append(combination_path)
 
                 if can_patch_work:
@@ -268,7 +269,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
         if patch_time_1st:
             patch_time_all = end_time - start_time
             offset = 0
-            for each in this_round_insert_node.body:
+            for each in this_round_insert_node:
                 offset+=each.col_offset  
 
         # already got minimize patch
@@ -287,17 +288,15 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
 
 
             tmp_content=final_patch_content
+            
             patch_offset=0
             for each in tmp_content.split('\n'):
                 if each !='':
                     patch_offset+=1
-                    print(patch_offset,each)
         
-            print(final_patch_content)
             for num in range(1,patch_offset+1):#len(tmp_insert_node.body)+1):#patched_victim_offset+len(patched_victim_node.body)-origin_victim_offset-victim_length):
                 result =linecache.getline(minimal_patch_file,patched_victim_node.lineno+num)
                 final_patch.append(result)
-
 
             org_contents.insert(insert_patch_to,''.join(final_patch))
             buf =  StringIO()
@@ -323,10 +322,4 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
         return 0
 
 
-def main():
-    pytest_method= 'pytest_cmd'
-    polluter = 'cynergy/tests/test_register_multiple.py::test_multiple_list_arguments'
-    cleaner = 'cynergy/tests/test_class_mapping.py::test_class_mapping_from_init'
-    victim = 'cynergy/tests/test_register_multiple.py::test_register_multiple'
 
-    fix_victim(pytest_method,polluter,cleaner,victim)
