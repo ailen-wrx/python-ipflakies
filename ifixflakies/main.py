@@ -4,27 +4,41 @@ import argparse
 from ifixflakies.detector import *
 from ifixflakies.initializers import *
 from ifixflakies.random import * 
+from ifixflakies.idflakies import *
 from py import io
 import pytest
 import os
+import json
 import shutil
 import random
+
+
+data = dict()
+
+
+def save_and_exit():
+    # print(data)
+    with open(SAVE_DIR+'Minimized.json', 'w') as f:
+        json.dump(data, f)
+    shutil.rmtree(CACHE_DIR)
+    exit(0)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="""
             A tool for automatically fixing order-dependency flaky tests in python.
             """,)
-    parser.add_argument("target_test", help="the target test id")
-    parser.add_argument('-co', '--collect-only', dest="collect_only", required=False, action="store_true", help="collect only")
-    parser.add_argument('-vo', '--verdict-only', dest="verdict_only", required=False, action="store_true", help="verdict only")
-    parser.add_argument('-po', '--polluter-only', dest="polluter_only", required=False, action="store_true", help="polluter only")
-    parser.add_argument('-e', dest="counting_cleaner_only", required=False, action="store_true",
-                        help="only counting the number of cleaners, without printing them to the console")
-    parser.add_argument('-t', dest="time_count", required=False, action="store_true",
-                        help="counting the time for entire test suite before running the suite")
+    parser.add_argument("-f", "--fix", dest = "target_test", required=False, default=None,
+                        help="the order-dependency test to be fixed")
+    parser.add_argument('-i', '--it', dest="iterations", type=int, required=False, default=100,
+                        help="times of run when executing random tests")
+    parser.add_argument('-co', '--collect', dest="collect", required=False, action="store_true", help="collect and print all tests")
+    parser.add_argument('-po', '--polluter', dest="polluter", required=False, action="store_true", help="only detect polluters")
+    parser.add_argument('-t', '--time', dest="time_count", required=False, action="store_true",
+                        help="run the entire test suite and record the time")
     parser.add_argument('-p', dest="programmatic", required=False, action="store_true",
                         help="to run pytest programmatically")
-    parser.add_argument('-r', dest="random", required=False, action="store_true",
+    parser.add_argument('-r', '--random', dest="random", required=False, action="store_true",
                         help="do random analysis directly")
     parser.add_argument('-s', dest="scope", required=False, default="session",
                         help="scope of seeking: session(default), module or class")
@@ -49,21 +63,33 @@ def main():
         print("[ERROR] Rounds of verdicting should be no less than 2.")
 
     test_list = collect_tests(pytest_method)
+    if not test:
+        flakies = idflakies(pytest_method, args.iterations)
+        with open(SAVE_DIR+'Flakies.json', 'w') as f:
+            json.dump(flakies, f)
+        exit(0)
 
+    elif test not in test_list:
+        exit(1)
+
+    print("============================ iFixFlakies ============================")
 
     if args.time_count:
         print("============================= TIME =============================")
-        os.system("python3 -m pytest")
+        os.system("python3 -m pytest --cache-clear")
         # pytest.main([])
 
-    if args.collect_only:
+    if args.collect:
         print("============================= COLLECT =============================")
         for i, test in enumerate(test_list):
             print("[{}]  {}".format(i+1, test))
         print(len(test_list), "tests collected.")
         exit(0)
     print(len(test_list), "unit tests collected.")
-    print()
+
+    
+    if not os.path.exists(SAVE_DIR):
+        os.makedirs(SAVE_DIR)
 
     if not os.path.exists(CACHE_DIR):
         os.makedirs(CACHE_DIR)
@@ -71,26 +97,33 @@ def main():
 
     if (args.random):
         print("============================= RANDOM =============================")
-        for i in range(100):
+        for i in range(args.iterations):
             if random_analysis(pytest_method, test, i):
                 break
-        exit(0)
+        save_and_exit()
 
-    print("============================= VERDICT =============================")
-    verd = verdict(test, args.verdict, pytest_method)
-    print(test, "is a", verd+".")
-    if args.verdict_only:
-        exit(0)
+    verd = verdict(pytest_method, test, args.verdict)
+    print("{} is a potential {}.".format(test, verd))
     print()
 
-    task_type = "polluter" if verd == VICTIM else "state-setter"
+    data["type"] = verd
+
+    if verd == VICTIM:
+        task_type = "polluter"
+        data["polluter"] = []
+    else:
+        task_type = "state-setter"
+        data["state-setter"] = []
+
     print("============================= {} =============================".format(task_type.upper()))
     task_scope = args.scope
     polluter_or_state_setter = find_polluter_or_state_setter(pytest_method, test_list, test, task_type, task_scope, args.verify)
+
     if polluter_or_state_setter:
         print(len(polluter_or_state_setter), task_type+'(s)', "for", test, "found:")
         for i, itest in enumerate(polluter_or_state_setter):
             print("[{}]  {}".format(i+1, itest))
+            data[task_type].append(itest)
     else:
         print("No", task_type, "for", test, "found.")
         if verd == VICTIM:
@@ -98,13 +131,14 @@ def main():
             for i in range(100):
                 if random_analysis(pytest_method, test, i):
                     break
-        exit(0)
+        save_and_exit()
     print()
-    # input("Press Enter to continue...")
 
 
-    if args.polluter_only or task_type == "state-setter":
-        exit(0)
+    if args.polluter or task_type == "state-setter":
+        save_and_exit()
+    
+    data["cleaner"] = dict()
 
     if args.maxp and args.maxp < len(polluter_or_state_setter):
         print("List of polluter is truncated to size of", args.maxp)
@@ -117,9 +151,11 @@ def main():
         print("{} / {}  Detecting cleaners for polluter {}.".format(i+1, len(polluter_or_state_setter), pos))
         cleaner = find_cleaner(pytest_method, test_list, pos, test, "session", args.verify)
         print("{} cleaner(s) for polluter {} found.".format(len(cleaner), pos))
-        if not args.counting_cleaner_only:
-            for i, itest in enumerate(cleaner):
-                print("[{}]  {}".format(i+1, itest))
+        data["cleaner"][pos] = []
+        for i, itest in enumerate(cleaner):
+            print("[{}]  {}".format(i+1, itest))
+            data["cleaner"][pos].append(itest)
+        print()
     print("-------------------------------------------------------------------")
 
-    shutil.rmtree(CACHE_DIR)
+    save_and_exit()

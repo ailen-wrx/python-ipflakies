@@ -39,7 +39,7 @@ def find_polluter_or_state_setter(pytest_method, test_list, victim_brittle, task
                     polluter_or_state_setter_list.append(test)
         progress.current += 1
         progress()
-    print()
+    progress.done()
     return polluter_or_state_setter_list
 
 def find_cleaner(pytest_method, test_list, polluter, victim, scope='session', nverify=4):
@@ -73,6 +73,5 @@ def find_cleaner(pytest_method, test_list, polluter, victim, scope='session', nv
                 cleaner_list.append(test)
         progress.current += 1
         progress()
-    print()
-
+    progress.done()
     return cleaner_list

@@ -7,6 +7,7 @@ from py import io
 from subprocess import Popen, PIPE
 
 CACHE_DIR = './cache/ifixflakies/'
+SAVE_DIR = './ifixflakies_result/'
 
 def split_test(test, rmpara=False):
     list = str(test).split("::")
@@ -116,4 +117,4 @@ class ProgressBar(object):
     def done(self):
         self.current = self.total
         self()
-        print('', file=self.output)
+        print('\r', file=self.output, end='')

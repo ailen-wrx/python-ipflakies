@@ -6,7 +6,7 @@ import hashlib
 def random_analysis(pytest_method, target, it, nviter=2):
     task = "random"
 
-    print("========================== RANDOM ROUND {} ==========================".format(it))
+    print("========================= RANDOM ROUND {} =========================".format(it))
     pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it)]
     std, err = pytest_method(pytestargs, stdout=False)
     try:
