@@ -1,17 +1,8 @@
 import linecache
 import ast
-import csv
-import difflib
-from py import io
-import re
 import os
-import shutil
-import sys
 import time
-import pytest
-import pandas as pd
 from io import StringIO
-import hashlib, binascii
 from ifixflakies.utils import *
 from ifixflakies.unparse import Unparser
 
@@ -45,7 +36,6 @@ def get_cleaner_helper_node(tree_cleaner,cleaner_test): #cleaner_test["class"],c
     name_node_dict = {'setup_module': None, 'setup_class': None, 'setup_function': None, 'setup_method': None,
                           cleaner_test["function"]: None,
                           'teardown_method': None, 'teardown_function': None, 'teardown_class': None, 'teardown_module': None}
-    
     
     if cleaner_test["class"]:
         for clean_class in [node for node in ast.walk(tree_cleaner) if isinstance(node, ast.ClassDef)]:
@@ -90,7 +80,7 @@ def get_victim_test_node(tree_victim,victim_test):
         for vic_class in [node for node in ast.walk(tree_victim) if isinstance(node,ast.ClassDef)]:
             if vic_class.name == victim_test["class"]:
                 for victim_obj in [func for func in ast.iter_child_nodes(vic_class) if isinstance(func,ast.FunctionDef)]:
-                    #print(victim_obj)             
+                    # print(victim_obj)
                     if victim_obj.name == victim_test["function"]:
                         victim_node = victim_obj
                         break
@@ -121,7 +111,11 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
         cleaner_import_num = cleaner_info.get_import_num()
 
     dotindex = victim_test["module"].index('.')
-    combination_path = victim_test["module"][:dotindex]+'_patch.py'
+    combination_path = "{}fixedVictims/{}_patch.py".format(SAVE_DIR, victim_test["module"][:dotindex])
+    combination_dir, _ = os.path.split(combination_path)
+    if not os.path.exists(combination_dir):
+        os.makedirs(combination_dir)
+        
 
     diff=None
     minimal_patch_file=None
@@ -137,7 +131,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
     if verify(pytest_method, [polluter, cleaner, victim], "passed") and verify(pytest_method, [polluter, victim], "failed"):
         
         can_copy_work = False
-        print('tmp')
+
 
         # get import module from cleaner test
         cleaner_import_objs = get_cleaner_import_list(cleaner_tree,victim_tree)
@@ -182,7 +176,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
         else:
             tmp_fixed_victim=combination_path +'::'+victim_test["function"]
 
-        result =  verify(pytest_method, [polluter, tmp_fixed_victim], "polluter")
+        result =  verify(pytest_method, [polluter, tmp_fixed_victim], "failed")
         
         victim_node_body.remove(helper_node_body)
 
@@ -242,7 +236,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
 
 
                 can_patch_work =  verify(pytest_method, [polluter, tmp_fixed_victim], "passed")
-                print(can_patch_work,tmp_fixed_victim)
+                # print(can_patch_work,tmp_fixed_victim)
                 cache_in_tests.append(combination_path)
 
                 if can_patch_work:
@@ -250,15 +244,14 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
                     patch_num += 1
                     if patch_num == 1:
                         patch_time_1st = patch_time - start_time
-                    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~CAN BE A PATCH~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n',
-                          tmp_content)
+                    # print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~CAN BE A PATCH~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n', tmp_content)
                     minimal_patch_file=combination_path
                     patch_list.append(tmp_content)
                     final_patch_content=tmp_content
                     insert_node_list = this_round_insert_node
                     n = max(n - 1, 2)
                     pollution_is_cleaned = True
-#                    print(edited_content)
+                    # print(edited_content)
                     break
                 start = start + subset_length
             if not pollution_is_cleaned:
@@ -311,7 +304,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
                 fnew.write(contents)
 
             diff=os.popen('diff '+victim_test["module"]+' '+processed_patch_file).read()
-            print(diff)
+            # print(diff)
         
       
     for each in cache_in_tests:
@@ -319,7 +312,9 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
             os.remove(each)
 
     if diff:
-        return 0
+        return diff, minimal_patch_file
+    else:
+        return None, None
 
 
 
