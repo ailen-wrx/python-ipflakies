@@ -7,7 +7,7 @@ WARNING_FLAG = "= warnings summary ="
 PYTEST_CO_STAT_FLAG = ["tests collected in", "tests ran in"]
 
 BRITTLE = "brittle"
-VICTIM = "potential victim"
+VICTIM = "victim"
 
 
 def collect_tests(pytest_method):
@@ -29,10 +29,9 @@ def collect_tests(pytest_method):
     return test_list
 
 
-def verdict(test, nverd, pytest_method):
+def verdict(pytest_method, test, nverd=4):
     verdict_res = []
     verdict_stdout = []
-    progress = ProgressBar(nverd, fmt=ProgressBar.FULL)
     for ind in range(nverd):
         std, err = pytest_method([test, '--csv', CACHE_DIR+'verdict'+'/{}.csv'.format(ind)])
         try:
@@ -42,9 +41,6 @@ def verdict(test, nverd, pytest_method):
             continue
         verdict_res.append(verd_test['status'][0])
         verdict_stdout.append(std)
-        progress.current += 1
-        progress()
-    print()
     verdict_res_uniq = list(set(verdict_res))
 
     if len(verdict_res_uniq) > 1:

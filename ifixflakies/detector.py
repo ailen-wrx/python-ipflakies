@@ -4,25 +4,6 @@ from py import io
 import hashlib
 
 
-def verify(pytest_method, tests, type, rounds=2):
-    task = "verdict_multitests"
-    for i in range(rounds):
-        md5 = hashlib.md5((",".join(tests)).encode(encoding='UTF-8')).hexdigest()
-        pytestargs = tests + ["--csv", CACHE_DIR + task + '/{}.csv'.format(md5)]
-        std, err = pytest_method(pytestargs)
-        try:
-            paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(md5))
-        except:
-            print("\n{}".format(std))
-            continue
-        status = paired_test['status']
-        if status[len(status)-1] == "passed" and type == "polluter":
-            return 0
-        if status[len(status)-1] != "passed" and (type == "state-setter" or type == "cleaner" or type == "patch"):
-            return 0
-    return 1
-
-
 def find_polluter_or_state_setter(pytest_method, test_list, victim_brittle, task="polluter", scope='session', nverify=4):
     test_prefix = ""
     splited = split_test(victim_brittle)
@@ -50,15 +31,15 @@ def find_polluter_or_state_setter(pytest_method, test_list, victim_brittle, task
         status = paired_test['status']
         if task == "polluter":
             if status[len(status)-1] != "passed":
-                if verify(pytest_method, [test, victim_brittle], "polluter", nverify):
+                if verify(pytest_method, [test, victim_brittle], "failed", nverify):
                     polluter_or_state_setter_list.append(test)
         elif task == "state-setter":
             if status[len(status)-1] == "passed":
-                if verify(pytest_method, [test, victim_brittle], "state-setter", nverify):
+                if verify(pytest_method, [test, victim_brittle], "passed", nverify):
                     polluter_or_state_setter_list.append(test)
         progress.current += 1
         progress()
-    print()
+    progress.done()
     return polluter_or_state_setter_list
 
 def find_cleaner(pytest_method, test_list, polluter, victim, scope='session', nverify=4):
@@ -88,10 +69,9 @@ def find_cleaner(pytest_method, test_list, polluter, victim, scope='session', nv
             continue
         status = paired_test['status']
         if status[len(status)-1] == "passed":
-            if verify(pytest_method, [polluter, test, victim], "cleaner", nverify):
+            if verify(pytest_method, [polluter, test, victim], "passed", nverify):
                 cleaner_list.append(test)
         progress.current += 1
         progress()
-    print()
-
+    progress.done()
     return cleaner_list

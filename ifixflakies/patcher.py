@@ -15,7 +15,6 @@ from unparse import Unparser
 from io import StringIO
 import hashlib, binascii
 from ifixflakies.utils.py import *
-from ifixflakies.detector import verify
 from ifixflakies.unparse import Unparser
 
 class get_origin_astInfo(ast.NodeVisitor):

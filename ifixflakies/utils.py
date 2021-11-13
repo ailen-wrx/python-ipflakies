@@ -2,10 +2,12 @@ import sys
 import re
 import csv
 import pytest
+import hashlib
 from py import io
 from subprocess import Popen, PIPE
 
 CACHE_DIR = './cache/ifixflakies/'
+SAVE_DIR = './ifixflakies_result/'
 
 def split_test(test, rmpara=False):
     list = str(test).split("::")
@@ -50,7 +52,7 @@ def pytest_pro(args, stdout=False):
 
 
 def pytest_cmd(args, stdout=False):
-    mainargs = ["python3", "-m", "pytest"] + args
+    mainargs = ["python3", "-m", "pytest", "--cache-clear"] + args
     if stdout:
         process = Popen(mainargs)
         std, err = process.communicate()
@@ -59,6 +61,25 @@ def pytest_cmd(args, stdout=False):
         process = Popen(mainargs, stdout=PIPE, stderr=PIPE)
         std, err = process.communicate()
         return std.decode("utf-8"), err.decode("utf-8")
+
+
+def verify(pytest_method, tests, assume, rounds=2):
+    task = "verify"
+    for i in range(rounds):
+        md5 = hashlib.md5((",".join(tests)).encode(encoding='UTF-8')).hexdigest()
+        pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format(md5)] + tests
+        std, err = pytest_method(pytestargs)
+        try:
+            paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(md5))
+        except:
+            print("\n{}".format(std))
+            continue
+        status = paired_test['status']
+        if status[len(status)-1] == "passed" and assume != "passed":
+            return 0
+        if status[len(status)-1] != "passed" and assume == "passed":
+            return 0
+    return 1
 
 
 class ProgressBar(object):
@@ -96,4 +117,4 @@ class ProgressBar(object):
     def done(self):
         self.current = self.total
         self()
-        print('', file=self.output)
+        print('\r', file=self.output, end='')
