@@ -8,7 +8,7 @@ def idflakies(pytest_method, nrounds, nverify=5):
     print("============================= iDFlakies =============================")
 
     task = "idflakies"
-    pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format("original")]
+    pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format("original"), "-k", "not {}".format(res_dir_name)]
     std, err = pytest_method(pytestargs, stdout=False)
     try:
         original_order = pytestcsv(CACHE_DIR + task + '/{}.csv'.format("original"))
