@@ -125,7 +125,7 @@ def main():
         print(len(polluter_or_state_setter), task_type+'(s)', "for", test, "found:")
         for i, itest in enumerate(polluter_or_state_setter):
             print("[{}]  {}".format(i+1, itest))
-            data[task_type].append(itest)
+            data[task_type][itest] = []
     else:
         print("No", task_type, "for", test, "found.")
         if verd == VICTIM:
@@ -152,10 +152,9 @@ def main():
         print("{} / {}  Detecting cleaners for polluter {}.".format(i+1, len(polluter_or_state_setter), pos))
         cleaner = find_cleaner(pytest_method, test_list, pos, test, "session", args.verify)
         print("{} cleaner(s) for polluter {} found.".format(len(cleaner), pos))
-        data[task_type][pos] = []
+        # data[task_type][pos] = []
         for i, itest in enumerate(cleaner):
             print("[{}]  {}".format(i+1, itest))
-            data["cleaner"][pos].append(itest)
             PatchInfo = fix_victim(pytest_method, pos, itest, test, polluter_or_state_setter)
             """
             PatchInfo = dict()
