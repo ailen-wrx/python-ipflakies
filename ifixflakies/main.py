@@ -9,18 +9,19 @@ from ifixflakies.patcher import *
 import os
 import json
 import shutil
+import hashlib
 import random
 
 
 data = dict()
 
 
-def save_and_exit():
+def save_and_exit(SAVE_DIR_MD5):
     # print(data)
-    with open(SAVE_DIR+'Minimized.json', 'w') as f:
+    with open(SAVE_DIR_MD5+'minimized.json', 'w') as f:
         json.dump(data, f)
     shutil.rmtree(CACHE_DIR)
-    print("Result data written into {}.".format(SAVE_DIR))
+    print("Result data written into {}.".format(SAVE_DIR_MD5))
     exit(0)
 
 
@@ -66,14 +67,17 @@ def main():
 
     test_list = collect_tests(pytest_method)
 
+    md5 = hashlib.md5(str(test).encode(encoding='UTF-8')).hexdigest()
+    SAVE_DIR_MD5 = SAVE_DIR + md5
+
     if not os.path.exists(SAVE_DIR):
         os.makedirs(SAVE_DIR)
 
     if not test:
         flakies = idflakies(pytest_method, args.iterations)
-        with open(SAVE_DIR+'Flakies.json', 'w') as f:
+        with open(SAVE_DIR+'flakies.json', 'w') as f:
             json.dump(flakies, f)
-        print("Result data written into {}.".format(SAVE_DIR))
+        print("Result data written into {}.".format(SAVE_DIR+'flakies.json'))
         exit(0)
     elif test not in test_list:
         exit(1)
@@ -84,10 +88,9 @@ def main():
 
     print("============================ iFixFlakies ============================")
 
-    if args.time_count:
-        print("============================= TIME =============================")
-        os.system("python3 -m pytest --cache-clear")
-        # pytest.main([])
+    print("============================ TEST SUITE ============================")
+    os.system("python3 -m pytest --cache-clear -k \"not {}\"".format(res_dir_name))
+    # pytest.main([])
 
     if args.collect:
         print("============================= COLLECT =============================")
@@ -102,7 +105,7 @@ def main():
         for i in range(args.iterations):
             if random_analysis(pytest_method, test, i, args.iterations):
                 break
-        save_and_exit()
+        save_and_exit(SAVE_DIR_MD5)
 
     verd = verdict(pytest_method, test, args.verdict)
     print("{} is a potential {}.".format(test, verd))
@@ -133,12 +136,12 @@ def main():
             for i in range(100):
                 if random_analysis(pytest_method, test, i):
                     break
-        save_and_exit()
+        save_and_exit(SAVE_DIR_MD5)
     print()
 
 
     if args.polluter or task_type == "state-setter":
-        save_and_exit()
+        save_and_exit(SAVE_DIR_MD5)
     
 
     if args.maxp and args.maxp < len(polluter_or_state_setter):
@@ -168,4 +171,4 @@ def main():
         print()
         print("-------------------------------------------------------------------")
 
-    save_and_exit()
+    save_and_exit(SAVE_DIR_MD5)
