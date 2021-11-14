@@ -112,10 +112,10 @@ def main():
 
     if verd == VICTIM:
         task_type = "polluter"
-        data["polluter"] = []
     else:
         task_type = "state-setter"
-        data["state-setter"] = []
+
+    data[task_type] = dict()
 
     print("============================= {} =============================".format(task_type.upper()))
     task_scope = args.scope
@@ -140,8 +140,6 @@ def main():
     if args.polluter or task_type == "state-setter":
         save_and_exit()
     
-    data["cleaner"] = dict()
-    data["patch"] = dict()
 
     if args.maxp and args.maxp < len(polluter_or_state_setter):
         print("List of polluter is truncated to size of", args.maxp)
@@ -154,16 +152,20 @@ def main():
         print("{} / {}  Detecting cleaners for polluter {}.".format(i+1, len(polluter_or_state_setter), pos))
         cleaner = find_cleaner(pytest_method, test_list, pos, test, "session", args.verify)
         print("{} cleaner(s) for polluter {} found.".format(len(cleaner), pos))
-        data["cleaner"][pos] = []
-        data["patch"][pos] = []
+        data[task_type][pos] = []
         for i, itest in enumerate(cleaner):
             print("[{}]  {}".format(i+1, itest))
             data["cleaner"][pos].append(itest)
-            patch, patchfile = fix_victim(pytest_method, pos, itest, test)
-            if patch:
+            PatchInfo = fix_victim(pytest_method, pos, itest, test, polluter_or_state_setter)
+            """
+            PatchInfo = dict()
+            {"diff": ..., "patched_test_file": ..., "patch_file": ..., "time": ...}
+            """
+            if PatchInfo:
                 print("[PATCH {}]".format(i+1))
-                print(patch)
-                data["patch"][pos].append({"diff": patch, "file": patchfile})
+                print(PatchInfo["diff"])
+            data[task_type][pos].append({"cleaner": itest, "patch": PatchInfo})
+
         print()
         print("-------------------------------------------------------------------")
 
