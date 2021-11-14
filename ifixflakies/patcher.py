@@ -2,6 +2,7 @@ import linecache
 import ast
 import os
 import time
+import hashlib
 from io import StringIO
 from ifixflakies.utils import *
 from ifixflakies.unparse import Unparser
@@ -95,9 +96,10 @@ def get_victim_test_node(tree_victim,victim_test):
 
 
 
-def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
-
+def fix_victim(pytest_method, polluter, cleaner, victim,polluter_list):#, fixed):
     task = "patcher"
+
+    md5 = hashlib.md5((cleaner).encode(encoding='UTF-8')).hexdigest()
 
     victim_test = split_test(victim, rmpara=True)
     cleaner_test = split_test(cleaner, rmpara=True)
@@ -107,21 +109,22 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
 
     with open(cleaner_test["module"]) as f_cleaner:
         cleaner_tree = ast.parse(f_cleaner.read())
-        cleaner_info = get_origin_astInfo(cleaner_tree)
-        cleaner_import_num = cleaner_info.get_import_num()
+    #    cleaner_info = get_origin_astInfo(cleaner_tree)
+    #    cleaner_import_num = cleaner_info.get_import_num()
 
     dotindex = victim_test["module"].index('.')
-    combination_path = "{}fixedVictims/{}_patch.py".format(SAVE_DIR, victim_test["module"][:dotindex])
-    combination_dir, _ = os.path.split(combination_path)
+    first_com_path = "{}fixedVictims/{}_patch_{}_.py".format(SAVE_DIR, victim_test["module"][:dotindex],md5)
+    combination_dir, _ = os.path.split(first_com_path)
+    patch_name = None
+
+    
     if not os.path.exists(combination_dir):
         os.makedirs(combination_dir)
         
 
     diff=None
     minimal_patch_file=None
-    patch_time_1st = None
     patch_time_all = None
-    can_copy_work = None
     import_obj_list=[]
     cache_in_tests=[]
     patch_list=[]
@@ -130,9 +133,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
     
     if verify(pytest_method, [polluter, cleaner, victim], "passed") and verify(pytest_method, [polluter, victim], "failed"):
         
-        can_copy_work = False
-
-
+         
         # get import module from cleaner test
         cleaner_import_objs = get_cleaner_import_list(cleaner_tree,victim_tree)
         for each_obj in cleaner_import_objs:
@@ -150,15 +151,11 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
 
         victim_start_lineno = victim_node_body[0].lineno
 
-        #backup_victim_tree = victim_tree
-        #backup_cleaner_tree = cleaner_tree
-        #backup_helper_node_body = helper_node_body
-        #backup_victim_node_body = victim_node_body
 
         victim_node_body.insert(0, helper_node_body)
         ast.fix_missing_locations(victim_tree)
 
-        # test if can be unparsed correctly
+        # test if inserted victim_tree can be unparsed correctly
         try:
             buf = StringIO()
             Unparser(victim_tree, buf)
@@ -167,27 +164,25 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
         except IndentationError:
             can_copy_work=False
 
-        with open(combination_path, "w") as combination:
+        with open(first_com_path, "w") as combination:
             combination.write(edited_content)
 
 
         if victim_test["class"]:
-            tmp_fixed_victim=combination_path + '::'+victim_test["class"]+'::'+victim_test["function"]
+            tmp_fixed_victim=first_com_path + '::'+victim_test["class"]+'::'+victim_test["function"]
         else:
-            tmp_fixed_victim=combination_path +'::'+victim_test["function"]
+            tmp_fixed_victim=first_com_path +'::'+victim_test["function"]
 
         result =  verify(pytest_method, [polluter, tmp_fixed_victim], "failed")
         
         victim_node_body.remove(helper_node_body)
 
-        if result:
-            can_copy_work = True
+    #    if result:
+    #        can_copy_work = True
 
         # minimize code by delta debugging
         n = 2
         start_time = time.perf_counter()
-        patch_num = 0
-        patch_time_1st = None
         patch_time_all = None
         roundnum=0
         minimal_patch_file= None
@@ -221,7 +216,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
                 buf.seek(0)
                 edited_content = buf.read()
 
-                combination_path = combination_path.replace('patch', 'patch'+str(roundnum))
+                combination_path = first_com_path.split('.py')[0]+str(roundnum)+'.py'
                 roundnum+=1
                 with open(combination_path, "w") as combination:
                     combination.write(edited_content)
@@ -236,22 +231,15 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
 
 
                 can_patch_work =  verify(pytest_method, [polluter, tmp_fixed_victim], "passed")
-                # print(can_patch_work,tmp_fixed_victim)
                 cache_in_tests.append(combination_path)
 
                 if can_patch_work:
-                    patch_time = time.perf_counter()
-                    patch_num += 1
-                    if patch_num == 1:
-                        patch_time_1st = patch_time - start_time
-                    # print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~CAN BE A PATCH~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n', tmp_content)
                     minimal_patch_file=combination_path
                     patch_list.append(tmp_content)
                     final_patch_content=tmp_content
                     insert_node_list = this_round_insert_node
                     n = max(n - 1, 2)
                     pollution_is_cleaned = True
-                    # print(edited_content)
                     break
                 start = start + subset_length
             if not pollution_is_cleaned:
@@ -259,7 +247,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
                 if n == len(insert_node_list):
                     break
         end_time = time.perf_counter()
-        if patch_time_1st:
+        if minimal_patch_file:
             patch_time_all = end_time - start_time
             offset = 0
             for each in this_round_insert_node:
@@ -278,7 +266,6 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
             patched_victim_node=get_victim_test_node(tree_patch,victim_test)
 
             final_patch=[]
-
 
             tmp_content=final_patch_content
             
@@ -304,17 +291,35 @@ def fix_victim(pytest_method, polluter, cleaner, victim):#, fixed):
                 fnew.write(contents)
 
             diff=os.popen('diff '+victim_test["module"]+' '+processed_patch_file).read()
-            # print(diff)
+            if diff:
+                patch_name="{}fixedVictims/{}_patch_{}_.patch".format(SAVE_DIR, victim_test["module"][:dotindex],md5)
+            os.popen('diff -up ' + victim_test["module"]+' '+processed_patch_file+ ' > '+patch_name)            
         
-      
     for each in cache_in_tests:
         if each != minimal_patch_file:
             os.remove(each)
 
     if diff:
-        return diff, minimal_patch_file
+        fixed_polluters = get_fixed_polluters(pytest_method, polluter_list, processed_patch_file, victim)
+        return {
+                 "diff": diff,
+                 "patched_test_file": processed_patch_file, 
+                 "patch_file": patch_name, 
+                 "time": patch_time_all, 
+                 "fixed_polluter(s)": fixed_polluters
+                }
     else:
-        return None, None
+        return None
 
 
-
+def get_fixed_polluters(pytest_method, all_polluter_list, patch_file, victim):
+    
+    victim_test = patch_file + '::' + '::'.join(victim.split('::')[1:])
+    fixed_polluters = []
+    
+    for each_polluter in all_polluter_list:
+        if verify(pytest_method,[each_polluter,victim_test],"passed"):
+            fixed_polluters.append(each_polluter)
+    
+    return fixed_polluters
+    
