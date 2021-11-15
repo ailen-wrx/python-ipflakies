@@ -96,7 +96,7 @@ def get_victim_test_node(tree_victim,victim_test):
 
 
 
-def fix_victim(pytest_method, polluter, cleaner, victim,polluter_list):#, fixed):
+def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed):
     task = "patcher"
 
     md5 = hashlib.md5((cleaner).encode(encoding='UTF-8')).hexdigest()
@@ -113,7 +113,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim,polluter_list):#, fixed)
     #    cleaner_import_num = cleaner_info.get_import_num()
 
     dotindex = victim_test["module"].index('.')
-    first_com_path = "{}fixedVictims/{}_patch_{}_.py".format(SAVE_DIR, victim_test["module"][:dotindex],md5)
+    first_com_path = "{}fixed_victims/{}_patch_{}_.py".format(SAVE_DIR_MD5, victim_test["module"][:dotindex],md5)
     combination_dir, _ = os.path.split(first_com_path)
     patch_name = None
 
@@ -292,7 +292,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim,polluter_list):#, fixed)
 
             diff=os.popen('diff '+victim_test["module"]+' '+processed_patch_file).read()
             if diff:
-                patch_name="{}fixedVictims/{}_patch_{}_.patch".format(SAVE_DIR, victim_test["module"][:dotindex],md5)
+                patch_name="{}fixed_victims/{}_patch_{}_.patch".format(SAVE_DIR_MD5, victim_test["module"][:dotindex],md5)
             os.popen('diff -up ' + victim_test["module"]+' '+processed_patch_file+ ' > '+patch_name)            
         
     for each in cache_in_tests:

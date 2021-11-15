@@ -33,22 +33,16 @@ def parse_args():
                         help="the order-dependency test to be fixed")
     parser.add_argument('-i', '--it', dest="iterations", type=int, required=False, default=100,
                         help="times of run when executing random tests")
-    parser.add_argument('-co', '--collect', dest="collect", required=False, action="store_true"
-                        , help="collect and print all tests")
     parser.add_argument('-po', '--polluter', dest="polluter", required=False, action="store_true"
                         , help="only detect polluters without cleaners")
-    parser.add_argument('-t', '--time', dest="time_count", required=False, action="store_true",
-                        help="run the entire test suite and record the time")
     parser.add_argument('-p', dest="programmatic", required=False, action="store_true",
                         help="to run pytest programmatically")
     parser.add_argument('-r', '--random', dest="random", required=False, action="store_true",
                         help="do random analysis directly")
     parser.add_argument('-s', dest="scope", required=False, default="session",
                         help="scope of seeking: session(default), module or class")
-    parser.add_argument('--nverdict', dest="verdict", type=int, required=False, default=10,
-                        help="times of run when verdicting a single test")
-    parser.add_argument('--nverify', dest="verify", type=int, required=False, default=4,
-                        help="times of run when verifying a polluter, state-setter, or cleaner")
+    parser.add_argument('--nverify', dest="verify", type=int, required=False, default=5,
+                        help="times of running when verifying the result of a test sequence")
     parser.add_argument('--maxp', dest="maxp", type=int, required=False, default=0,
                         help="the maximum number of polluters taken into consideration")
 
@@ -62,16 +56,16 @@ def main():
     test = args.target_test
 
     pytest_method = pytest_pro if args.programmatic else pytest_cmd
-    if args.verdict <= 1:
-        print("[ERROR] Rounds of verdicting should be no less than 2.")
+    if args.verify <= 1:
+        print("[ERROR] Rounds of verifying should be no less than 2.")
 
     test_list = collect_tests(pytest_method)
 
     md5 = hashlib.md5(str(test).encode(encoding='UTF-8')).hexdigest()
-    SAVE_DIR_MD5 = SAVE_DIR + md5
+    SAVE_DIR_MD5 = SAVE_DIR + md5 + '/'
 
-    if not os.path.exists(SAVE_DIR):
-        os.makedirs(SAVE_DIR)
+    if not os.path.exists(SAVE_DIR_MD5):
+        os.makedirs(SAVE_DIR_MD5)
 
     if not test:
         flakies = idflakies(pytest_method, args.iterations)
@@ -88,16 +82,8 @@ def main():
 
     print("============================ iFixFlakies ============================")
 
-    print("============================ TEST SUITE ============================")
     os.system("python3 -m pytest --cache-clear -k \"not {}\"".format(res_dir_name))
     # pytest.main([])
-
-    if args.collect:
-        print("============================= COLLECT =============================")
-        for i, test in enumerate(test_list):
-            print("[{}]  {}".format(i+1, test))
-    print(len(test_list), "unit tests collected.")
-
 
 
     if (args.random):
@@ -107,10 +93,11 @@ def main():
                 break
         save_and_exit(SAVE_DIR_MD5)
 
-    verd = verdict(pytest_method, test, args.verdict)
+    verd = verdict(pytest_method, test, args.verify)
     print("{} is a potential {}.".format(test, verd))
     print()
 
+    data["target"] = test
     data["type"] = verd
 
     if verd == VICTIM:
@@ -158,7 +145,7 @@ def main():
         # data[task_type][pos] = []
         for i, itest in enumerate(cleaner):
             print("[{}]  {}".format(i+1, itest))
-            PatchInfo = fix_victim(pytest_method, pos, itest, test, polluter_or_state_setter)
+            PatchInfo = fix_victim(pytest_method, pos, itest, test, polluter_or_state_setter, SAVE_DIR_MD5)
             """
             PatchInfo = dict()
             {"diff": ..., "patched_test_file": ..., "patch_file": ..., "time": ...}

@@ -18,7 +18,14 @@ def idflakies(pytest_method, nrounds, nverify=5):
 
     flakies = dict()
 
+    upper = nrounds // 3
+    no_update = 0
+
     for it in range(nrounds):
+        no_update += 1
+        if no_update >= upper:
+            print("BREAK.")
+            break
         print("----------------------- iDFlakies ROUND {}/{} -----------------------".format(it+1, nrounds))
         pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it), "-k", "not {}".format(res_dir_name)]
         std, err = pytest_method(pytestargs, stdout=False)
@@ -28,8 +35,6 @@ def idflakies(pytest_method, nrounds, nverify=5):
             continue
 
         for i, target in enumerate(original_order['id']):
-            if target in flakies and flakies[target]["type"] == "NOD":
-                continue
             random_index = random_order["id"].index(target)
             if random_order["status"][random_index] != original_order["status"][i]:
                 flaky_sequence = random_order["id"][:random_index+1]
@@ -53,10 +58,11 @@ def idflakies(pytest_method, nrounds, nverify=5):
                     verify_seq.append(flaky_verify['status'][-1])
 
 
-                print(verify_od)
+                # print(verify_od)
                 for key in verify_od:
                     verify_set = list(set(verify_od[key]))
                     if len(verify_set) > 1:
+                        no_update = 0
                         nod_seq = flaky_verify['id'][:flaky_verify['id'].index(key)]
                         print("[NOD]", "{} is Non-deterministic in a detected sequence.".format(key))
                         flakies[key] = {"type": "NOD", 
@@ -65,16 +71,27 @@ def idflakies(pytest_method, nrounds, nverify=5):
 
                 verify_set = list(set(verify_seq))
 
-                if len(verify_set) == 1 and verify_set[0] == random_order["status"][random_index]:
-                    print("[OD]", "{} is a {}.".format(target, feature(verify_set[0])))
-                    flakies[target] = {"type": feature(verify_set[0]), 
-                                       "detected_sequence": random_order["id"], 
-                                       "original_sequence": original_order["id"]}
+                if target in flakies and flakies[target]["type"] == "NOD":
+                    continue
+
                 if len(verify_set) > 1:
+                    no_update = 0
                     print("[NOD]", "{} is Non-deterministic in a detected sequence.".format(target))
                     flakies[target] = {"type": "NOD", 
                                        "detected_sequence": random_order["id"],
                                        "original_sequence": None}
+                    continue
+
+                if target in flakies and flakies[target]["type"] == feature(verify_set[0]):
+                    continue
+
+                if verify_set[0] == random_order["status"][random_index]:
+                    no_update = 0
+                    print("[OD]", "{} is a {}.".format(target, feature(verify_set[0])))
+                    flakies[target] = {"type": feature(verify_set[0]), 
+                                       "detected_sequence": random_order["id"], 
+                                       "original_sequence": original_order["id"]}
+                    continue
 
 
     print("============================== Result ==============================")
