@@ -64,7 +64,7 @@ def pytest_cmd(args, stdout=False):
         return std.decode("utf-8"), err.decode("utf-8")
 
 
-def verify(pytest_method, tests, assume, rounds=2):
+def verify(pytest_method, tests, assume, rounds=3):
     task = "verify"
     for i in range(rounds):
         md5 = hashlib.md5((",".join(tests)).encode(encoding='UTF-8')).hexdigest()

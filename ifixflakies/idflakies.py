@@ -1,12 +1,18 @@
 from ifixflakies.utils import *
+from ifixflakies.random import *
 
 
 def feature(passed_or_failed):
     return "victim" if passed_or_failed == "failed" else "brittle"
 
 
-def idflakies(pytest_method, nrounds, nverify=5):
-    print("============================= iDFlakies =============================")
+def idflakies_exust(pytest_method, test_list, nround, seed, nviter, nrerun, nseq):
+    results = random_test_suites(pytest_method, nround, seed)
+    flakies = random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq)
+    return flakies
+
+
+def idflakies_dev(pytest_method, nrounds, nverify=5):
 
     task = "idflakies"
     pytestargs_orig = ["--csv", CACHE_DIR + task + '/{}.csv'.format("original"), "-k", "not {}".format(res_dir_name)]
@@ -66,8 +72,7 @@ def idflakies(pytest_method, nrounds, nverify=5):
                         nod_seq = flaky_verify['id'][:flaky_verify['id'].index(key)]
                         print("[NOD]", "{} is Non-deterministic in a detected sequence.".format(key))
                         flakies[key] = {"type": "NOD", 
-                                        "detected_sequence": nod_seq,
-                                        "original_sequence": None}
+                                        "detected_sequence": nod_seq}
 
                 verify_set = list(set(verify_seq))
 
@@ -78,8 +83,7 @@ def idflakies(pytest_method, nrounds, nverify=5):
                     no_update = 0
                     print("[NOD]", "{} is Non-deterministic in a detected sequence.".format(target))
                     flakies[target] = {"type": "NOD", 
-                                       "detected_sequence": random_order["id"],
-                                       "original_sequence": None}
+                                       "detected_sequence": random_order["id"]}
                     continue
 
                 if target in flakies and flakies[target]["type"] == feature(verify_set[0]):
@@ -89,8 +93,7 @@ def idflakies(pytest_method, nrounds, nverify=5):
                     no_update = 0
                     print("[OD]", "{} is a {}.".format(target, feature(verify_set[0])))
                     flakies[target] = {"type": feature(verify_set[0]), 
-                                       "detected_sequence": random_order["id"], 
-                                       "original_sequence": original_order["id"]}
+                                       "detected_sequence": random_order["id"]}
                     continue
 
 

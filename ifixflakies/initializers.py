@@ -30,6 +30,10 @@ def collect_tests(pytest_method):
 
 
 def verdict(pytest_method, test, nverd=4):
+
+    pytestargs_orig = ["-k", "not {}".format(res_dir_name)]
+    pytest_method(pytestargs_orig, stdout=False)
+
     verdict_res = []
     verdict_stdout = []
     for ind in range(nverd):
