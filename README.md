@@ -5,18 +5,25 @@ A tool for automatically detecting and fixing order-dependency python flaky test
  - python 3.8 or higher
 
 ## Install
- - ( Make sure that the project able to install and run its pytest suite in a virtual environment )
+ - ( Make sure that the project is able to install dependencies required and run its pytest suite in a virtual environment )
   - Steps ( Before launching to pip )
     ```bash
     git clone https://github.com/ailen-wrx/python-ifixflakies
+
     git clone $project_url
+
     cd $project
+
     {python3.x} -m venv venv
+
     source venv/bin/activate
+
     # install all dependencies required for the current project
     pip install -r {requirements.txt}
+
     # make a soft link of the ifixflakies package to the library of the virtual environment
     ln -s python-ifixflakies/ifixflakies venv/lib/{python3.x}/site-packages/ifixflakies
+
     # install dependencies for ifixflakies
     pip install -r venv/lib/{python3.x}/site-packages/ifixflakies/requirements.txt
 
@@ -37,7 +44,7 @@ python3 -m ifixflakies -f {target OD-test}
 ## Parameters
 ```
 > python3 -m ifixflakies -h
-usage: __main__.py [-h] [-f TARGET_TEST] [-i ITERATIONS] [-co] [-po] [-t] [-p] [-r] [-s SCOPE] [--nverdict VERDICT] [--nverify VERIFY] [--maxp MAXP]
+usage: __main__.py [-h] [-f TARGET_TEST] [-i ITERATIONS] [-po] [-p] [-r] [-s SCOPE] [--nverdict VERDICT] [--nverify VERIFY] [--maxp MAXP]
 
 A tool for automatically fixing order-dependency flaky tests in python.
 
@@ -47,14 +54,11 @@ optional arguments:
                         the order-dependency test to be fixed
   -i ITERATIONS, --it ITERATIONS
                         times of run when executing random tests
-  -co, --collect        collect and print all tests
   -po, --polluter       only detect polluters without cleaners
-  -t, --time            run the entire test suite and record the time
   -p                    to run pytest programmatically
   -r, --random          do random analysis directly
   -s SCOPE              scope of seeking: session(default), module or class
-  --nverdict VERDICT    times of run when verdicting a single test
-  --nverify VERIFY      times of run when verifying a polluter, state-setter, or cleaner
+  --nverify VERIFY      times of running when verifying the result of a test sequence
   --maxp MAXP           the maximum number of polluters taken into consideration
 ```
  
