@@ -1,5 +1,5 @@
-from ifixflakies.utils import *
-from ifixflakies.initializers import *
+from ipflakies.utils import *
+from ipflakies.initializers import *
 import bidict
 from bidict import bidict
 import hashlib

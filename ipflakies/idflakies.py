@@ -1,5 +1,5 @@
-from ifixflakies.utils import *
-from ifixflakies.random import *
+from ipflakies.utils import *
+from ipflakies.random import *
 
 
 def feature(passed_or_failed):

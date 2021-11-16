@@ -1,4 +1,4 @@
-from ifixflakies.main import main
+from ipflakies.main import main
 
 if __name__ == "__main__":
     main()

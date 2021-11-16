@@ -1,5 +1,5 @@
 
-from ifixflakies.utils import *
+from ipflakies.utils import *
 from py import io
 import hashlib
 

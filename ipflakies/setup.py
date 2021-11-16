@@ -13,7 +13,7 @@ def _process_requirements():
     return requires
 
 setup(
-    name='ifixflakies',
+    name='ipflakies',
     version='0.1.1',
     description='A tool for automatically fixing order-dependency flaky tests in python.',
     author='Ruixin Wang, Yang Chen',

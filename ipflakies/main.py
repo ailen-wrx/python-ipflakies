@@ -1,11 +1,11 @@
 # coding=utf-8
 import argparse
 
-from ifixflakies.detector import *
-from ifixflakies.initializers import *
-from ifixflakies.random import * 
-from ifixflakies.idflakies import *
-from ifixflakies.patcher import *
+from ipflakies.detector import *
+from ipflakies.initializers import *
+from ipflakies.random import * 
+from ipflakies.idflakies import *
+from ipflakies.patcher import *
 import os
 import json
 import shutil

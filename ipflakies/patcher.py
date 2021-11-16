@@ -4,8 +4,8 @@ import os
 import time
 import hashlib
 from io import StringIO
-from ifixflakies.utils import *
-from ifixflakies.unparse import Unparser
+from ipflakies.utils import *
+from ipflakies.unparse import Unparser
 
 class get_origin_astInfo(ast.NodeVisitor):
     def __init__(self,node):
