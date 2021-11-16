@@ -118,4 +118,4 @@ class ProgressBar(object):
     def done(self):
         self.current = self.total
         self()
-        print('\r', file=self.output, end='')
+        print('\rComplete.                                                            ', file=self.output)

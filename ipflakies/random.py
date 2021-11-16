@@ -48,9 +48,7 @@ def random_test_suites(pytest_method, nround, seed):
         progress.current += 1
         progress()
     
-    progress.done()
-    print("Complete.                                                                            ")
-    
+    progress.done()  
     return results
 
 
@@ -84,7 +82,7 @@ def random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq):
             continue
         else:
             if set_passing and set_failing:
-                print("[iDFlakies] {} is a potential OD test, verifying its stability...".format(test))
+                print("[iDFlakies] {} is a flaky test, checking whether it is non-deterministic or order-dependent...".format(test))
                 for i1 in range(min(len(list(set_passing)), nrerun)):
                     passing_seq = seq_decoding(test_dict, list(set_passing)[i1])
                     if not verify(pytest_method, passing_seq, 'passed', rounds=nviter):
@@ -103,8 +101,9 @@ def random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq):
                         NOD = True
                         break
                 if not NOD: 
+                    print("[iDFlakies] {} is order-dependent, checking whether it is a victim or a brittle...".format(test))
                     verd = verdict(pytest_method, test, nviter)
-                    print("[iDFlakies] {} is a potential {}.".format(test, verd))
+                    print("[iDFlakies] {} is a {}.".format(test, verd))
                     passing_orders = []
                     failing_orders = []
                     for i, passed in enumerate(list(set_passing)):
@@ -115,7 +114,7 @@ def random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq):
                                       "detected_sequence": passing_orders if verd == BRITTLE else failing_orders }
         
     print("============================== Result ==============================")
-    print("{} flaky tests found in this project: ".format(len(flakies)))
+    print("{} flaky test(s) found in this project: ".format(len(flakies)))
     for i, key in enumerate(flakies):
         print("[{}] {} - {}".format(i+1, flakies[key]["type"], key))
     return flakies
