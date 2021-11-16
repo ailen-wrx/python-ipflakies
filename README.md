@@ -1,5 +1,5 @@
 # python-ifixflakies
-A tool for automatically detecting and fixing order-dependency python flaky tests developed in pure python.
+A tool for automatically detecting and fixing order-dependency python flaky tests developed in python.
 
 ## Environment
  - python 3.8 or higher

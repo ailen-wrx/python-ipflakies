@@ -1,0 +1,4 @@
+include *.md
+include MANIFEST.in
+include requirements.txt
+recursive-include ipflakies *.py
