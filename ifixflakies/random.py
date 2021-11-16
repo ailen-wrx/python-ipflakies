@@ -124,7 +124,7 @@ def random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq):
 def random_detection(pytest_method, target, it, tot, nviter=5):
     task = "random"
 
-    print("======================= RANDOM ROUND {}/{} =======================".format(it+1, tot))
+    print("----------------------- RANDOM ROUND {}/{} -----------------------".format(it+1, tot))
     pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it), "-k", "not {}".format(res_dir_name)]
     std, err = pytest_method(pytestargs, stdout=False)
     try:

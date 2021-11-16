@@ -143,7 +143,7 @@ def main():
         if verd == VICTIM:
             print("============================= RANDOM =============================")
             for i in range(100):
-                if random_detection(pytest_method, test, i):
+                if random_detection(pytest_method, test, i, args.iterations):
                     break
         save_and_exit(SAVE_DIR_MD5)
     print()
@@ -168,9 +168,11 @@ def main():
             PatchInfo = dict()
             {"diff": ..., "patched_test_file": ..., "patch_file": ..., "time": ...}
             """
-            if PatchInfo:
-                print("[PATCHER]", "A patch generated with cleaner {}".format(itest))
+            if PatchInfo and PatchInfo["fixed_polluter(s)"]:
+                print("[PATCHER]", "A patch generated with cleaner {}: ".format(itest))
                 print(PatchInfo["diff"])
+                print("[PATCHER]", "The patch can fix the pollution from {}/{} polluters." \
+                      .format(len(PatchInfo["fixed_polluter(s)"]), len(polluter_or_state_setter)))
             data[task_type][pos].append({"cleaner": itest, "patch": PatchInfo})
 
         print()
