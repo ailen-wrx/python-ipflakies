@@ -4,11 +4,13 @@ import csv
 import pytest
 import hashlib
 from py import io
+from func_timeout import func_set_timeout
 from subprocess import Popen, PIPE
 
-CACHE_DIR = './cache/ifixflakies/'
-res_dir_name = 'ifixflakies_result'
+CACHE_DIR = './cache/ipflakies/'
+res_dir_name = 'ipflakies_result'
 SAVE_DIR = './{}/'.format(res_dir_name)
+TIME_OUT = 864
 
 def split_test(test, rmpara=False):
     list = str(test).split("::")
@@ -41,6 +43,7 @@ def pytestcsv(file):
     return res
 
 
+@func_set_timeout(TIME_OUT)
 def pytest_pro(args, stdout=False):
     if stdout:
         pytest.main(args)
@@ -52,6 +55,7 @@ def pytest_pro(args, stdout=False):
         return std, err
 
 
+@func_set_timeout(TIME_OUT)
 def pytest_cmd(args, stdout=False):
     mainargs = ["python3", "-m", "pytest"] + args
     if stdout:

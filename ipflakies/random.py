@@ -41,7 +41,7 @@ def random_test_suites(pytest_method, nround, seed):
             random_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(current_seed))
         except:
             print("\n{}".format(std))
-            continue
+            exit(0)
         
         results.append(random_test)
 

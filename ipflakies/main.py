@@ -21,7 +21,7 @@ def save_and_exit(SAVE_DIR_MD5):
     # print(data)
     with open(SAVE_DIR_MD5+'minimized.json', 'w') as f:
         json.dump(data, f)
-    shutil.rmtree(CACHE_DIR)
+    # shutil.rmtree(CACHE_DIR)
     print("Summary data written into {}".format(SAVE_DIR_MD5+'minimized.json'))
     exit(0)
 
@@ -116,7 +116,7 @@ def main():
         save_and_exit(SAVE_DIR_MD5)
 
     verd = verdict(pytest_method, test, args.verify)
-    print("{} is a potential {}.".format(test, verd))
+    print("{} is a {}.".format(test, verd))
     print()
 
     data["target"] = test

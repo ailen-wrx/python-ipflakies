@@ -1,5 +1,6 @@
 attrs==21.2.0
 bidict==0.21.4
+func-timeout==4.3.5
 iniconfig==1.1.1
 packaging==21.2
 pluggy==1.0.0
