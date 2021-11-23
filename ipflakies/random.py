@@ -53,6 +53,20 @@ def random_test_suites(pytest_method, nround, seed):
     
     return results
 
+def get_random_test_suites(pytest_method):
+    results = []
+    task = "random_suite"
+    pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format("normal"), "-k", "not {}".format(res_dir_name)]
+
+    std, err = pytest_method(pytestargs, stdout=True)
+
+    for t in os.listdir(CACHE_DIR + task):
+        random_test = pytestcsv(CACHE_DIR + task + '/{}'.format(t))
+        results.append(random_test)
+    
+    return results 
+
+
 
 def random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq):
     test_dict = bidict()

@@ -7,7 +7,8 @@ def feature(passed_or_failed):
 
 
 def idflakies_exust(pytest_method, test_list, nround, seed, nviter, nrerun, nseq):
-    results = random_test_suites(pytest_method, nround, seed)
+    #results = random_test_suites(pytest_method, nround, seed)
+    results = get_random_test_suites(pytest_method)
     flakies = random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq)
     return flakies
 
