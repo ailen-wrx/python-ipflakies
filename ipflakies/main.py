@@ -30,7 +30,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="""
             A framework for automatically detecting and fixing Python order-dependent flaky tests.
             """,)
-    parser.add_argument("-f", "--fix", dest = "target_test", required=False, default=None,
+    parser.add_argument("-t", "--test", dest = "target_test", required=False, default=None,
                         help="the order-dependency test to be fixed")
     parser.add_argument('-i', '--it', dest="iterations", type=int, required=False, default=100,
                         help="times of run when executing random tests")

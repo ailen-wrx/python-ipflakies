@@ -64,7 +64,7 @@ def random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq):
         passing[test] = []
         failing[test] = []
 
-    print("----------------------------- Analyser -----------------------------")
+    print("----------------------------- Analyzer -----------------------------")
     for random_suite in results:
         for index, testid in enumerate(random_suite['id']):
             if random_suite['status'][index] == 'passed':

@@ -7,9 +7,9 @@ from py import io
 from func_timeout import func_set_timeout
 from subprocess import Popen, PIPE
 
-CACHE_DIR = './cache/ipflakies/'
+CACHE_DIR = 'cache/ipflakies/'
 res_dir_name = 'ipflakies_result'
-SAVE_DIR = './{}/'.format(res_dir_name)
+SAVE_DIR = '{}/'.format(res_dir_name)
 TIME_OUT = 864
 
 def split_test(test, rmpara=False):
