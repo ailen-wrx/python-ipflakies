@@ -31,6 +31,18 @@ def random_test_suites(pytest_method, nround, seed):
     results = []
     print("---------------------------- Randomizer ----------------------------")
     print("Running randomized test suites {} times with seed \"{}\"".format(nround, seed))
+
+    pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format("normal"), "-k", "not {}".format(res_dir_name)]
+
+    std, err = pytest_method(pytestargs, stdout=True)
+    try:
+        normal_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format("normal"))
+    except:
+        print("\n{}".format(std))
+        exit(0)
+    
+    results.append(normal_test)
+
     progress = ProgressBar(nround, fmt=ProgressBar.FULL)
     for _, current_seed in zip(range(nround), random_generator(seed)):
         pytestargs = ["--random-order-seed={}".format(current_seed), \
@@ -93,6 +105,12 @@ def random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq):
         NOD = False
         if intersection:
             NOD = True
+            failing_seq = []
+            for i in list(intersection):
+                failing_seq.append(seq_decoding(test_dict, i))
+            print("[iDFlakies] {} is Non-deterministic.".format(test))
+            flakies[test] = { "type": "NOD", 
+                            "detected_sequence": failing_seq }
             continue
         else:
             if set_passing and set_failing:
