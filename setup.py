@@ -17,11 +17,7 @@ def _process_requirements():
 
 setup(
     name = "ipflakies",
-<<<<<<< Updated upstream
-    version = "0.1.4",
-=======
-    version = "0.0.3",
->>>>>>> Stashed changes
+    version = "0.1.8",
     keywords = ["pip", "flaky_test","flaky"],
     description = "A tool for automatically detecting and fixing OD tests.",
     long_description = "A tool for automatically detecting and fixing order-dependency python flaky tests developed in python.",
