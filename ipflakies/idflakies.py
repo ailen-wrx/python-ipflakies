@@ -7,8 +7,7 @@ def feature(passed_or_failed):
 
 
 def idflakies_exust(pytest_method, test_list, nround, seed, nviter, nrerun, nseq):
-    #results = random_test_suites(pytest_method, nround, seed)
-    results = get_random_test_suites(pytest_method)
+    results = random_test_suites(pytest_method, nround, seed)
     flakies = random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq)
     return flakies
 
@@ -16,7 +15,7 @@ def idflakies_exust(pytest_method, test_list, nround, seed, nviter, nrerun, nseq
 def idflakies_dev(pytest_method, nrounds, nverify=5):
 
     task = "idflakies"
-    pytestargs_orig = ["--csv", CACHE_DIR + task + '/{}.csv'.format("original"), "-k", "not {}".format(res_dir_name)]
+    pytestargs_orig = ["--csv", CACHE_DIR + task + '/{}.csv'.format("original")]
     std, err = pytest_method(pytestargs_orig, stdout=False)
     try:
         original_order = pytestcsv(CACHE_DIR + task + '/{}.csv'.format("original"))
@@ -34,7 +33,7 @@ def idflakies_dev(pytest_method, nrounds, nverify=5):
             print("BREAK.")
             break
         print("----------------------- iDFlakies ROUND {}/{} -----------------------".format(it+1, nrounds))
-        pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it), "-k", "not {}".format(res_dir_name)]
+        pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it)]
         std, err = pytest_method(pytestargs, stdout=False)
         try:
             random_order = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(it))

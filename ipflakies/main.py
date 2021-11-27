@@ -25,7 +25,7 @@ def save_and_exit(SAVE_DIR_MD5):
     print("Summary data written into {}".format(SAVE_DIR_MD5+'minimized.json'))
     exit(0)
 
-
+# TODO: Change names of parameters
 def parse_args():
     parser = argparse.ArgumentParser(description="""
             A framework for automatically detecting and fixing Python order-dependent flaky tests.
@@ -68,8 +68,7 @@ def main():
     if args.verify <= 1:
         print("[ERROR] Rounds of verifying should be no less than 2.")
 
-    pytestargs_orig = ["-k", "not {}".format(res_dir_name)]
-    std, err = pytest_method(pytestargs_orig, stdout=False)
+    std, err = pytest_method([], stdout=False)
     if err:
         print("Fail to run test suite. Please make sure all dependencies required are correctly installed.")
         return(0)
@@ -106,7 +105,7 @@ def main():
 
 
     print("============================ iFixFlakies ============================")
-
+    # TODO: Record Time for Minimizer
 
     if (args.random):
         print("---------------------- [ Minimizer: {} ] ----------------------".format("random"))

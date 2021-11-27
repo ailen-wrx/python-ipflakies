@@ -3,6 +3,7 @@ import ast
 import os
 import time
 import hashlib
+import shutil
 from io import StringIO
 from ipflakies.utils import *
 from ipflakies.unparse import Unparser
@@ -99,7 +100,7 @@ def get_victim_test_node(tree_victim,victim_test):
 def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed):
     task = "patcher"
 
-    md5 = hashlib.md5((cleaner).encode(encoding='UTF-8')).hexdigest()
+    md5 = hashlib.md5((cleaner).encode(encoding='UTF-8')).hexdigest()[:8]
 
     victim_test = split_test(victim, rmpara=True)
     cleaner_test = split_test(cleaner, rmpara=True)
@@ -113,7 +114,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR
     #    cleaner_import_num = cleaner_info.get_import_num()
 
     dotindex = victim_test["module"].index('.')
-    first_com_path = "{}fixed_victims/{}_patch_{}_.py".format(SAVE_DIR_MD5, victim_test["module"][:dotindex],md5)
+    first_com_path = "{}fixed_victims/{}_patch_{}.py".format(SAVE_DIR_MD5, victim_test["module"][:dotindex],md5)
     combination_dir, _ = os.path.split(first_com_path)
     patch_name = None
 
@@ -129,6 +130,8 @@ def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR
     cache_in_tests=[]
     patch_list=[]
     final_patch_content=''
+
+    cache_in_tests.append(first_com_path)
 
     
     if verify(pytest_method, [polluter, cleaner, victim], "passed") and verify(pytest_method, [polluter, victim], "failed"):
@@ -292,18 +295,19 @@ def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR
 
             diff=os.popen('diff '+victim_test["module"]+' '+processed_patch_file).read()
             if diff:
-                patch_name="{}fixed_victims/{}_patch_{}_.patch".format(SAVE_DIR_MD5, victim_test["module"][:dotindex],md5)
+                patch_name="{}fixed_victims/{}_patch_{}.patch".format(SAVE_DIR_MD5, victim_test["module"][:dotindex],md5)
             os.popen('diff -up ' + victim_test["module"]+' '+processed_patch_file+ ' > '+patch_name)            
         
     for each in cache_in_tests:
-        if each != minimal_patch_file:
-            os.remove(each)
+        os.remove(each)
 
     if diff:
         fixed_polluters = get_fixed_polluters(pytest_method, polluter_list, processed_patch_file, victim)
+        os.rename(processed_patch_file, processed_patch_file+'#')
+        shutil.rmtree(combination_dir+'/__pycache__')
         return {
                  "diff": diff,
-                 "patched_test_file": processed_patch_file, 
+                 "patched_test_file": processed_patch_file+'#', 
                  "patch_file": patch_name, 
                  "time": patch_time_all, 
                  "fixed_polluter(s)": fixed_polluters

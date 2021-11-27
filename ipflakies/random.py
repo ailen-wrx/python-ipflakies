@@ -32,9 +32,9 @@ def random_test_suites(pytest_method, nround, seed):
     print("---------------------------- Randomizer ----------------------------")
     print("Running randomized test suites {} times with seed \"{}\"".format(nround, seed))
 
-    pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format("normal"), "-k", "not {}".format(res_dir_name)]
+    pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format("normal")]
 
-    std, err = pytest_method(pytestargs, stdout=True)
+    std, err = pytest_method(pytestargs, stdout=False)
     try:
         normal_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format("normal"))
     except:
@@ -46,7 +46,7 @@ def random_test_suites(pytest_method, nround, seed):
     progress = ProgressBar(nround, fmt=ProgressBar.FULL)
     for _, current_seed in zip(range(nround), random_generator(seed)):
         pytestargs = ["--random-order-seed={}".format(current_seed), \
-            "--csv", CACHE_DIR + task + '/{}.csv'.format(current_seed), "-k", "not {}".format(res_dir_name)]
+            "--csv", CACHE_DIR + task + '/{}.csv'.format(current_seed)]
     
         std, err = pytest_method(pytestargs)
         try:
@@ -62,20 +62,6 @@ def random_test_suites(pytest_method, nround, seed):
     
     progress.done()  
     return results
-
-def get_random_test_suites(pytest_method):
-    results = []
-    task = "random_suite"
-    pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format("normal"), "-k", "not {}".format(res_dir_name)]
-
-    std, err = pytest_method(pytestargs, stdout=True)
-
-    for t in os.listdir(CACHE_DIR + task):
-        random_test = pytestcsv(CACHE_DIR + task + '/{}'.format(t))
-        results.append(random_test)
-    
-    return results 
-
 
 
 def random_analysis(pytest_method, test_list, results, nviter, nrerun, nseq):
