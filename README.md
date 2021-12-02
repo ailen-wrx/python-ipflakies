@@ -1,36 +1,36 @@
-# python-ifixflakies
-A tool for automatically detecting and fixing order-dependency python flaky tests developed in python.
+# iPFlakies
+A tool for automatically detecting and fixing order-dependent Python flaky tests.
 
 ## Environment
- - python 3.8 or higher
+ - Python 3.8 or higher
 
 ## Install
- - ( Make sure that the project is able to install dependencies required and run its pytest suite in a virtual environment )
-  - Steps ( Before launching to pip )
-    ```bash
-    git clone https://github.com/ailen-wrx/python-ifixflakies
+```bash
+git clone https://github.com/ailen-wrx/python-ifixflakies
 
-    git clone $project_url
+git clone $project_url
 
-    cd $project
+cd $project
 
-    {python3.x} -m venv venv
+{python3.x} -m venv venv
 
-    source venv/bin/activate
+source venv/bin/activate
 
-    # install all dependencies required for the current project
-    pip install -r {requirements.txt}
+# install all dependencies required for the current project
+pip install -r {requirements.txt}
 
-    # make a soft link of the ifixflakies package to the library of the virtual environment
-    ln -s python-ifixflakies/ifixflakies venv/lib/{python3.x}/site-packages/ifixflakies
+# make a soft link of the ifixflakies package to the library of the virtual environment
+ln -s python-ifixflakies/ifixflakies venv/lib/{python3.x}/site-packages/ifixflakies
 
-    # install dependencies for ifixflakies
-    pip install -r venv/lib/{python3.x}/site-packages/ifixflakies/requirements.txt
+# install dependencies for ifixflakies
+pip install -r venv/lib/{python3.x}/site-packages/ifixflakies/requirements.txt
 
-    python -m ifixflakies -h
-    ```
+python -m ifixflakies -h
+```
 
 ## Run
+ - Be sure to first properly setup and install the dependencies required by your project and that you are able to run the project's tests using `pytest`.
+
 ### iDFlakies
 ```bash
 python3 -m ifixflakies -i {iteration}
@@ -46,7 +46,7 @@ python3 -m ifixflakies -f {target OD-test}
 > python3 -m ifixflakies -h
 usage: __main__.py [-h] [-f TARGET_TEST] [-i ITERATIONS] [-pro] [-r] [-s SCOPE] [--seed SEED] [--nverify VERIFY] [--nrerun RERUN] [--nseq SEQ] [--maxp MAXP]
 
-A tool for automatically fixing order-dependency flaky tests in python.
+A tool for automatically detecting and fixing Python order-dependent flaky tests.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -63,4 +63,3 @@ optional arguments:
   --nseq SEQ            number of passing or failing sequences to store when having detected a potential brittle or victim, default = 3
   --maxp MAXP           the maximum number of polluters taken into consideration, default = 0 (no limit)
 ```
- 
