@@ -97,7 +97,7 @@ def get_victim_test_node(tree_victim,victim_test):
 
 
 
-def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed):
+def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed):
     task = "patcher"
 
     md5 = hashlib.md5((cleaner).encode(encoding='UTF-8')).hexdigest()[:8]
@@ -134,7 +134,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR
     cache_in_tests.append(first_com_path)
 
     
-    if verify(pytest_method, [polluter, cleaner, victim], "passed") and verify(pytest_method, [polluter, victim], "failed"):
+    if verify([polluter, cleaner, victim], "passed") and verify([polluter, victim], "failed"):
         
          
         # get import module from cleaner test
@@ -176,7 +176,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR
         else:
             tmp_fixed_victim=first_com_path +'::'+victim_test["function"]
 
-        result =  verify(pytest_method, [polluter, tmp_fixed_victim], "failed")
+        result =  verify([polluter, tmp_fixed_victim], "failed")
         
         victim_node_body.remove(helper_node_body)
 
@@ -233,7 +233,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR
                     tmp_fixed_victim=combination_path +'::'+victim_test["function"]
 
 
-                can_patch_work =  verify(pytest_method, [polluter, tmp_fixed_victim], "passed")
+                can_patch_work =  verify([polluter, tmp_fixed_victim], "passed")
                 cache_in_tests.append(combination_path)
 
                 if can_patch_work:
@@ -302,7 +302,7 @@ def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR
         os.remove(each)
 
     if diff:
-        fixed_polluters = get_fixed_polluters(pytest_method, polluter_list, processed_patch_file, victim)
+        fixed_polluters = get_fixed_polluters(polluter_list, processed_patch_file, victim)
         os.rename(processed_patch_file, processed_patch_file+'#')
         shutil.rmtree(combination_dir+'/__pycache__')
         return {
@@ -316,13 +316,13 @@ def fix_victim(pytest_method, polluter, cleaner, victim, polluter_list, SAVE_DIR
         return None
 
 
-def get_fixed_polluters(pytest_method, all_polluter_list, patch_file, victim):
+def get_fixed_polluters(all_polluter_list, patch_file, victim):
     
     victim_test = patch_file + '::' + '::'.join(victim.split('::')[1:])
     fixed_polluters = []
     
     for each_polluter in all_polluter_list:
-        if verify(pytest_method,[each_polluter,victim_test],"passed"):
+        if verify([each_polluter,victim_test],"passed"):
             fixed_polluters.append(each_polluter)
     
     return fixed_polluters

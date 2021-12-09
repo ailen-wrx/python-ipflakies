@@ -68,12 +68,12 @@ def pytest_cmd(args, stdout=False):
         return std.decode("utf-8"), err.decode("utf-8")
 
 
-def verify(pytest_method, tests, assume, rounds=3):
+def verify(tests, assume, rounds=3):
     task = "verify"
     for i in range(rounds):
         md5 = hashlib.md5((",".join(tests)).encode(encoding='UTF-8')).hexdigest()
         pytestargs = ["--csv", CACHE_DIR + task + '/{}.csv'.format(md5)] + tests
-        std, err = pytest_method(pytestargs)
+        std, err = pytest_cmd(pytestargs)
         try:
             paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(md5))
         except:

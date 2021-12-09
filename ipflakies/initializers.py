@@ -10,8 +10,8 @@ BRITTLE = "brittle"
 VICTIM = "victim"
 
 
-def collect_tests(pytest_method):
-    std, err = pytest_method(['--collect-only', '-q', "-k", "not {}".format(res_dir_name)])
+def collect_tests():
+    std, err = pytest_cmd(['--collect-only', '-q', "-k", "not {}".format(res_dir_name)])
     test_list = list(filter(lambda x: x, re.split(r'\n\s*(?!\"[^()]*\))', std)))
     test_list = list(filter(lambda x: x, std.split("\n")))
     err_ind = [i for i, x in enumerate(test_list) if ERRORS_FLAG in x]
@@ -29,15 +29,15 @@ def collect_tests(pytest_method):
     return test_list
 
 
-def verdict(pytest_method, test, nverd=4):
+def verdict(test, nverd=4):
 
     pytestargs_orig = ["-k", "not {}".format(res_dir_name)]
-    pytest_method(pytestargs_orig, stdout=False)
+    pytest_cmd(pytestargs_orig, stdout=False)
 
     verdict_res = []
     verdict_stdout = []
     for ind in range(nverd):
-        std, err = pytest_method([test, '--csv', CACHE_DIR+'verdict'+'/{}.csv'.format(ind)])
+        std, err = pytest_cmd([test, '--csv', CACHE_DIR+'verdict'+'/{}.csv'.format(ind)])
         try:
             verd_test = pytestcsv(CACHE_DIR+'verdict'+'/{}.csv'.format(ind))
         except:
@@ -48,10 +48,7 @@ def verdict(pytest_method, test, nverd=4):
     verdict_res_uniq = list(set(verdict_res))
 
     if len(verdict_res_uniq) > 1:
-        if pytest_method == pytest_pro and (verdict_res[:2] == ["passed", "failed"]):
-            print("{} is likely to be a Non-Idempotent-Outcome test".format(test))
-        else:
-            print("{} is a Non-deterministic test.".format(test))
+        print("{} is a Non-deterministic test.".format(test))
         for i in verdict_res_uniq:
             print("[{}]  {}\n{}".format(verdict_res.index(i), i, verdict_stdout[verdict_res.index(i)]))
         exit(0)

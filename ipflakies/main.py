@@ -3,7 +3,6 @@ import argparse
 
 from ipflakies.detector import *
 from ipflakies.initializers import *
-from ipflakies.random import * 
 from ipflakies.idflakies import *
 from ipflakies.patcher import *
 import os
@@ -34,8 +33,6 @@ def parse_args():
                         help="the order-dependency test to be fixed")
     parser.add_argument('-i', '--it', dest="iterations", type=int, required=False, default=100,
                         help="times of run when executing random tests")
-    parser.add_argument('-pro', dest="programmatic", required=False, action="store_true",
-                        help="to run pytest programmatically")
     parser.add_argument('-r', '--random', dest="random", required=False, action="store_true",
                         help="do random minimizing directly")
     parser.add_argument('-s', dest="scope", required=False, default="session",
@@ -52,8 +49,9 @@ def parse_args():
                              having detected a potential brittle or victim,\ndefault = 3")
     parser.add_argument('--maxp', dest="maxp", type=int, required=False, default=0,
                         help="the maximum number of polluters taken into consideration,\ndefault = 0 (no limit)")
-    parser.add_argument('-all', '--all-patch', dest="all_patch", required=False, action="store_true",
-                            help="to detect all possible patches for the victim instead of the first to fix all polluters")
+    parser.add_argument('--patch-mode', dest="patch_mode", required=False, default="first",
+                            help="all: to detect all possible patches for the victim, \n \
+                                (default) fisrt: to detect the first to fix all polluters")
 
 
     args = parser.parse_args()
@@ -64,18 +62,17 @@ def main():
     args = parse_args()
     test = args.target_test
 
-    pytest_method = pytest_pro if args.programmatic else pytest_cmd
     if args.verify <= 1:
         print("[ERROR] Rounds of verifying should be no less than 2.")
 
-    std, err = pytest_method([], stdout=False)
+    std, err = pytest_cmd([], stdout=False)
     if err:
         print("Fail to run test suite. Please make sure all dependencies required are correctly installed.")
-        return(0)
+        exit(1)
 
-    test_list = collect_tests(pytest_method)
+    test_list = collect_tests()
 
-    md5 = hashlib.md5((str(test)+str(time.time())).encode(encoding='UTF-8')).hexdigest()
+    md5 = hashlib.md5((str(test)+str(time.time())).encode(encoding='UTF-8')).hexdigest()[:8]
     SAVE_DIR_MD5 = SAVE_DIR + md5 + '/'
 
     if not os.path.exists(SAVE_DIR):
@@ -83,10 +80,14 @@ def main():
 
     if not test:
 
+        time0 = time.time()
+
         print("============================= iDFlakies =============================")
 
-        flakies = idflakies_exust(pytest_method, test_list, args.iterations, args.seed, args.verify, args.rerun, args.seq)
-        # flakies = idflakies_dev(pytest_method, args.iterations)
+        flakies = idflakies_exust(test_list, args.iterations, args.seed, args.verify, args.rerun, args.seq)
+        # flakies = idflakies_dev(args.iterations)
+
+        flakies["time"] = time.time() - time0
 
         with open(SAVE_DIR+'flakies.json', 'w') as f:
             json.dump(flakies, f)
@@ -105,16 +106,9 @@ def main():
 
 
     print("============================ iFixFlakies ============================")
-    # TODO: Record Time for Minimizer
+    time1 = time.time()
 
-    if (args.random):
-        print("---------------------- [ Minimizer: {} ] ----------------------".format("random"))
-        for i in range(args.iterations):
-            if random_detection(pytest_method, test, i, args.iterations):
-                break
-        save_and_exit(SAVE_DIR_MD5)
-
-    verd = verdict(pytest_method, test, args.verify)
+    verd = verdict(test, args.verify)
     print("{} is a {}.".format(test, verd))
     print()
 
@@ -131,7 +125,7 @@ def main():
     print("============================= {} =============================".format(task_type.upper()))
     print("---------------------- [ Minimizer: {} ] ----------------------".format(task_type))
     task_scope = args.scope
-    polluter_or_state_setter = find_polluter_or_state_setter(pytest_method, test_list, test, task_type, task_scope, args.verify)
+    polluter_or_state_setter = find_polluter_or_state_setter(test_list, test, task_type, task_scope, args.verify)
 
     if polluter_or_state_setter:
         print(len(polluter_or_state_setter), task_type+'(s)', "for", test, "found:")
@@ -143,7 +137,7 @@ def main():
         if verd == VICTIM:
             print("---------------------- [ Minimizer: {} ] ----------------------".format("random"))
             for i in range(100):
-                if random_detection(pytest_method, test, i, args.iterations):
+                if random_detection(test, i, args.iterations):
                     break
         save_and_exit(SAVE_DIR_MD5)
     print()
@@ -159,12 +153,12 @@ def main():
     truncate = False
     for i, pos in enumerate(polluter_or_state_setter):
         print("{} / {}  Detecting cleaners for polluter {}.".format(i+1, len(polluter_or_state_setter), pos))
-        cleaner = find_cleaner(pytest_method, test_list, pos, test, "session", args.verify)
+        cleaner = find_cleaner(test_list, pos, test, "session", args.verify)
         print("{} cleaner(s) found.".format(len(cleaner)))
         # data[task_type][pos] = []
         for i, itest in enumerate(cleaner):
             print("[{}]  {}".format(i+1, itest))
-            PatchInfo = fix_victim(pytest_method, pos, itest, test, polluter_or_state_setter, SAVE_DIR_MD5)
+            PatchInfo = fix_victim(pos, itest, test, polluter_or_state_setter, SAVE_DIR_MD5)
             """
             PatchInfo = dict()
             {"diff": ..., "patched_test_file": ..., "patch_file": ..., "time": ...}
@@ -175,7 +169,7 @@ def main():
                 for line in PatchInfo["diff"].split("\n"): print("[Patcher]", line)
                 print("[Patcher]", "The patch can fix the pollution from {}/{} polluters." \
                       .format(len(PatchInfo["fixed_polluter(s)"]), len(polluter_or_state_setter)))
-                if (not args.all_patch) and len(PatchInfo["fixed_polluter(s)"]) == len(polluter_or_state_setter):
+                if (args.patch_mode != 'all') and len(PatchInfo["fixed_polluter(s)"]) == len(polluter_or_state_setter):
                     truncate = True
                     print("[Patcher] Found a patch to fix all polluters. Stopped.")
                     print("[Patcher] Run with parameter --all-patch to detect all possible patches.")
@@ -185,5 +179,7 @@ def main():
 
         print()
         print("-------------------------------------------------------------------")
+
+    data["time"] = time.time() - time1
 
     save_and_exit(SAVE_DIR_MD5)
