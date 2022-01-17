@@ -1,13 +1,19 @@
+from shutil import get_terminal_size
 import sys
 import re
 import csv
 import pytest
 import hashlib
+import os
 from py import io
 from func_timeout import func_set_timeout
 from subprocess import Popen, PIPE
 
+WIDTH = os.get_terminal_size().columns
+HEIGHT = os,get_terminal_size().lines
+
 CACHE_DIR = 'cache/ipflakies/'
+LOG_DIR = 'ipflakies_log/'
 res_dir_name = 'ipflakies_result'
 SAVE_DIR = '{}/'.format(res_dir_name)
 TIME_OUT = 864
@@ -43,16 +49,16 @@ def pytestcsv(file):
     return res
 
 
-@func_set_timeout(TIME_OUT)
-def pytest_pro(args, stdout=False):
-    if stdout:
-        pytest.main(args)
-        return None, None
-    else:
-        capture = io.StdCapture()
-        pytest.main(args)
-        std, err = capture.reset()
-        return std, err
+# @func_set_timeout(TIME_OUT)
+# def pytest_pro(args, stdout=False):
+#     if stdout:
+#         pytest.main(args)
+#         return None, None
+#     else:
+#         capture = io.StdCapture()
+#         pytest.main(args)
+#         std, err = capture.reset()
+#         return std, err
 
 
 @func_set_timeout(TIME_OUT)
@@ -77,8 +83,9 @@ def verify(tests, assume, rounds=3):
         try:
             paired_test = pytestcsv(CACHE_DIR + task + '/{}.csv'.format(md5))
         except:
+            print(tests)
             print("\n{}".format(std))
-            continue
+            return 0
         status = paired_test['status']
         if status[len(status)-1] == "passed" and assume != "passed":
             return 0
@@ -87,12 +94,16 @@ def verify(tests, assume, rounds=3):
     return 1
 
 
+def print_title(separator, content):
+    n = int((WIDTH - len(content)) / 2) - 1
+    print(separator * n, content, separator * n)
+
+
 class ProgressBar(object):
     DEFAULT = 'Progress: %(bar)s %(percent)3d%%'
     FULL = '%(bar)s %(current)d/%(total)d (%(percent)3d%%) %(remaining)d to go'
 
-    def __init__(self, total, width=40, fmt=DEFAULT, symbol='▇',
-                 output=sys.stderr):
+    def __init__(self, total, width=40, fmt=DEFAULT, symbol='▇', output=sys.stderr):
         assert len(symbol) == 1
 
         self.total = total
@@ -122,4 +133,4 @@ class ProgressBar(object):
     def done(self):
         self.current = self.total
         self()
-        print('\rComplete.                                                            ', file=self.output)
+        print('\rComplete.'+' '*60, file=self.output)
