@@ -1,10 +1,10 @@
-
 from ipflakies.utils import *
 from py import io
+import shutil
 import hashlib
 
 
-def find_polluter_or_state_setter(test_list, victim_brittle, task="polluter", scope='session', nverify=4):
+def find_polluter_or_state_setter(md5_t, test_list, victim_brittle, task="polluter", scope='session', nverify=4, log=False):
     test_prefix = ""
     splited = split_test(victim_brittle)
     if scope == "module":
@@ -37,12 +37,23 @@ def find_polluter_or_state_setter(test_list, victim_brittle, task="polluter", sc
             if status[len(status)-1] == "passed":
                 if verify([test, victim_brittle], "passed", nverify):
                     polluter_or_state_setter_list.append(test)
+
+        if log:
+            if not os.path.exists(LOG_DIR + md5_t + '/' + task):
+                os.makedirs(LOG_DIR + md5_t + '/' + task)
+            shutil.copy(CACHE_DIR + task + '/{}.csv'.format(md5), LOG_DIR + md5_t + '/' + task + '/{}.csv'.format(md5))
+            with open(LOG_DIR + md5_t + '/' + task + '/{}.log'.format(md5), 'w') as f:
+                f.write(std)
+            if err:
+                with open(LOG_DIR + md5_t + '/' + task + '/{}.err'.format(md5), 'w') as f:
+                    f.write(err)
+
         progress.current += 1
         progress()
     progress.done()
     return polluter_or_state_setter_list
 
-def find_cleaner(test_list, polluter, victim, scope='session', nverify=4):
+def find_cleaner(md5_t, test_list, polluter, victim, scope='session', nverify=4, log=False):
     task = "cleaner"
     test_prefix = ""
     splited = split_test(victim)
@@ -71,6 +82,17 @@ def find_cleaner(test_list, polluter, victim, scope='session', nverify=4):
         if status[len(status)-1] == "passed":
             if verify([polluter, test, victim], "passed", nverify):
                 cleaner_list.append(test)
+
+        if log:
+            if not os.path.exists(LOG_DIR + md5_t + '/' + task):
+                os.makedirs(LOG_DIR + md5_t + '/' + task)
+            shutil.copy(CACHE_DIR + task + '/{}.csv'.format(md5), LOG_DIR + md5_t + '/' + task + '/{}.csv'.format(md5))
+            with open(LOG_DIR + md5_t + '/' + task + '/{}.log'.format(md5), 'w') as f:
+                f.write(std)
+            if err:
+                with open(LOG_DIR + md5_t + '/' + task + '/{}.err'.format(md5), 'w') as f:
+                    f.write(err)
+
         progress.current += 1
         progress()
     progress.done()

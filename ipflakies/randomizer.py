@@ -1,5 +1,6 @@
 from ipflakies.utils import *
 from ipflakies.initializers import *
+import shutil
 import hashlib
 
 
@@ -10,11 +11,11 @@ def random_generator(seed):
         yield(hash)
 
 
-def random_test_suites(nround, seed):
+def random_test_suites(nround, seed, log=False):
     task = "random_suite"
 
     results = []
-    print("---------------------------- Randomizer ----------------------------")
+    print_title("-", "Randomizer")
     print("Running randomized test suites {} times with seed \"{}\"".format(nround, seed))
 
     progress = ProgressBar(nround, fmt=ProgressBar.FULL)
@@ -31,6 +32,16 @@ def random_test_suites(nround, seed):
         
         results.append(random_test)
 
+        if log:
+            if not os.path.exists(LOG_DIR + task):
+                os.makedirs(LOG_DIR + task)
+            shutil.copy(CACHE_DIR + task + '/{}.csv'.format(current_seed), LOG_DIR + task + '/{}.csv'.format(current_seed))
+            with open(LOG_DIR + task + '/{}.log'.format(current_seed), 'w') as f:
+                f.write(std)
+            if err:
+                with open(LOG_DIR + task + '/{}.err'.format(current_seed), 'w') as f:
+                    f.write(err)
+
         progress.current += 1
         progress()
     
@@ -42,7 +53,7 @@ def random_test_suites(nround, seed):
 def random_detection(target, it, tot, nviter=5):
     task = "random"
 
-    print("----------------------- RANDOM ROUND {}/{} -----------------------".format(it+1, tot))
+    print_title("-", "RANDOM ROUND {}/{}".format(it+1, tot))
     pytestargs = ["--random-order", "--csv", CACHE_DIR + task + '/{}.csv'.format(it), "-k", "not {}".format(res_dir_name)]
     std, err = pytest_cmd(pytestargs, stdout=False)
     try:
