@@ -96,10 +96,7 @@ def get_victim_test_node(tree_victim,victim_test):
     return victim_node
 
 
-
-def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed):
-    task = "patcher"
-
+def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):
     md5 = hashlib.md5((cleaner).encode(encoding='UTF-8')).hexdigest()[:8]
 
     victim_test = split_test(victim, rmpara=True)
@@ -110,18 +107,17 @@ def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed)
 
     with open(cleaner_test["module"]) as f_cleaner:
         cleaner_tree = ast.parse(f_cleaner.read())
-    #    cleaner_info = get_origin_astInfo(cleaner_tree)
-    #    cleaner_import_num = cleaner_info.get_import_num()
+
+    file_name = victim_test["module"].split('/')[-1].split('.')[0]
 
     dotindex = victim_test["module"].index('.')
-    first_com_path = "{}fixed_victims/{}_patch_{}.py".format(SAVE_DIR_MD5, victim_test["module"][:dotindex],md5)
+    first_com_path = "{}_patch_{}.py".format(victim_test["module"][:dotindex],md5)
+
     combination_dir, _ = os.path.split(first_com_path)
     patch_name = None
-
     
     if not os.path.exists(combination_dir):
         os.makedirs(combination_dir)
-        
 
     diff=None
     minimal_patch_file=None
@@ -132,11 +128,8 @@ def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed)
     final_patch_content=''
 
     cache_in_tests.append(first_com_path)
-
     
     if verify([polluter, cleaner, victim], "passed") and verify([polluter, victim], "failed"):
-        
-         
         # get import module from cleaner test
         cleaner_import_objs = get_cleaner_import_list(cleaner_tree,victim_tree)
         for each_obj in cleaner_import_objs:
@@ -154,7 +147,6 @@ def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed)
 
         victim_start_lineno = victim_node_body[0].lineno
 
-
         victim_node_body.insert(0, helper_node_body)
         ast.fix_missing_locations(victim_tree)
 
@@ -170,18 +162,17 @@ def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed)
         with open(first_com_path, "w") as combination:
             combination.write(edited_content)
 
-
         if victim_test["class"]:
             tmp_fixed_victim=first_com_path + '::'+victim_test["class"]+'::'+victim_test["function"]
         else:
             tmp_fixed_victim=first_com_path +'::'+victim_test["function"]
 
-        result =  verify([polluter, tmp_fixed_victim], "failed")
+        result =  verify([polluter, tmp_fixed_victim], "passed")
         
         victim_node_body.remove(helper_node_body)
 
-    #    if result:
-    #        can_copy_work = True
+        if result:
+            can_copy_work = True
 
         # minimize code by delta debugging
         n = 2
@@ -233,7 +224,7 @@ def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed)
                     tmp_fixed_victim=combination_path +'::'+victim_test["function"]
 
 
-                can_patch_work =  verify([polluter, tmp_fixed_victim], "passed")
+                can_patch_work = verify([polluter, tmp_fixed_victim], "passed")
                 cache_in_tests.append(combination_path)
 
                 if can_patch_work:
@@ -277,7 +268,7 @@ def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed)
                 if each !='':
                     patch_offset+=1
         
-            for num in range(1,patch_offset+1):#len(tmp_insert_node.body)+1):#patched_victim_offset+len(patched_victim_node.body)-origin_victim_offset-victim_length):
+            for num in range(1,patch_offset+1):
                 result =linecache.getline(minimal_patch_file,patched_victim_node.lineno+num)
                 final_patch.append(result)
 
@@ -293,24 +284,252 @@ def fix_victim(polluter, cleaner, victim, polluter_list, SAVE_DIR_MD5):#, fixed)
             with open(processed_patch_file, "w") as fnew:
                 fnew.write(contents)
 
+            for each in cache_in_tests:
+                os.remove(each)
+
             diff=os.popen('diff '+victim_test["module"]+' '+processed_patch_file).read()
             if diff:
-                patch_name="{}fixed_victims/{}_patch_{}.patch".format(SAVE_DIR_MD5, victim_test["module"][:dotindex],md5)
-            os.popen('diff -up ' + victim_test["module"]+' '+processed_patch_file+ ' > '+patch_name)            
+                shutil.rmtree(combination_dir+'/__pycache__')
+                patch_name="{}patch/{}_patch_{}.patch".format(SAVE_DIR_MD5, file_name, md5)
+                if not os.path.exists(os.path.split(patch_name)[0]):
+                    os.makedirs(os.path.split(patch_name)[0])
+                _ = os.popen('diff -up ' + victim_test["module"]+' '+processed_patch_file+ ' > '+patch_name).read()
+
+        for each in cache_in_tests:
+            if os.path.exists(each): os.remove(each)
         
-    for each in cache_in_tests:
-        os.remove(each)
 
     if diff:
         fixed_polluters = get_fixed_polluters(polluter_list, processed_patch_file, victim)
-        os.rename(processed_patch_file, processed_patch_file+'#')
-        shutil.rmtree(combination_dir+'/__pycache__')
+        saved_processed_patch_file = "{}patch/{}_PatchProcessed_{}.py#".format(SAVE_DIR_MD5, file_name, md5)
+        if not os.path.exists(os.path.split(saved_processed_patch_file)[0]):
+            os.makedirs(os.path.split(saved_processed_patch_file)[0])
+        shutil.move(processed_patch_file, saved_processed_patch_file)
         return {
                  "diff": diff,
-                 "patched_test_file": processed_patch_file+'#', 
+                 "patched_test_file": saved_processed_patch_file, 
                  "patch_file": patch_name, 
                  "time": patch_time_all, 
                  "fixed_polluter(s)": fixed_polluters
+                }
+    else:
+        return None
+
+
+def fix_brittle(setter, brittle, SAVE_DIR_MD5):
+    md5 = hashlib.md5((setter).encode(encoding='UTF-8')).hexdigest()[:8]
+
+    brittle_test = split_test(brittle, rmpara=True)
+    setter_test = split_test(setter, rmpara=True)
+
+    with open(brittle_test["module"]) as f_brittle:
+        brittle_tree = ast.parse(f_brittle.read())
+
+    with open(setter_test["module"]) as f_setter:
+        setter_tree = ast.parse(f_setter.read())
+
+    file_name = brittle_test["module"].split('/')[-1].split('.')[0]
+
+    dotindex = brittle_test["module"].index('.')
+    first_com_path = "{}_patch_{}.py".format(brittle_test["module"][:dotindex],md5)
+
+    combination_dir, _ = os.path.split(first_com_path)
+    patch_name = None
+    
+    if not os.path.exists(combination_dir):
+        os.makedirs(combination_dir)
+
+    diff=None
+    minimal_patch_file=None
+    patch_time_all = None
+    import_obj_list=[]
+    cache_in_tests=[]
+    patch_list=[]
+    final_patch_content=''
+
+    cache_in_tests.append(first_com_path)
+    
+    if verify([setter, brittle], "passed"):
+        # get import module from cleaner test
+        cleaner_import_objs = get_cleaner_import_list(setter_tree,brittle_tree)
+        for each_obj in cleaner_import_objs:
+            brittle_tree.body.insert(0,each_obj)
+
+        # get helper code from cleaner test body
+        helper_node_body = get_cleaner_helper_node(setter_tree,setter_test)
+
+        # get victim body
+        brittle_node_body = get_victim_test_node(brittle_tree,brittle_test).body
+
+        origin_victim_offset=0
+        for each in brittle_node_body:
+            origin_victim_offset+=each.col_offset
+
+        victim_start_lineno = brittle_node_body[0].lineno
+
+        brittle_node_body.insert(0, helper_node_body)
+        ast.fix_missing_locations(brittle_tree)
+
+        # test if inserted brittle_tree can be unparsed correctly
+        try:
+            buf = StringIO()
+            Unparser(brittle_tree, buf)
+            buf.seek(0)
+            edited_content = buf.read()
+        except IndentationError:
+            can_copy_work=False
+
+        with open(first_com_path, "w") as combination:
+            combination.write(edited_content)
+
+        if brittle_test["class"]:
+            tmp_fixed_brittle=first_com_path + '::'+brittle_test["class"]+'::'+brittle_test["function"]
+        else:
+            tmp_fixed_brittle=first_com_path +'::'+brittle_test["function"]
+
+        result =  verify([tmp_fixed_brittle], "passed")
+        
+        brittle_node_body.remove(helper_node_body)
+
+        if result:
+            can_copy_work = True
+
+        # minimize code by delta debugging
+        n = 2
+        start_time = time.perf_counter()
+        patch_time_all = None
+        roundnum=0
+        minimal_patch_file= None
+        insert_node_list = helper_node_body
+        while len(insert_node_list) >= 2:
+            start = 0
+            subset_length = len(insert_node_list) // n
+            state_is_set = False
+            while start < len(insert_node_list):
+
+                this_round_insert_node = insert_node_list[:start] + insert_node_list[start+subset_length:]
+                tmp_brittle_tree = brittle_tree
+                tmp_brittle_node_body = brittle_node_body
+
+                try:
+                    tmp_brittle_node_body.insert(0, this_round_insert_node)
+                    ast.fix_missing_locations(tmp_brittle_tree)
+                    can_be_inserted=True
+
+                except:# IndentationError:
+                    can_be_inserted=False
+
+                tmp_buf = StringIO()
+                Unparser(this_round_insert_node, tmp_buf)
+                tmp_buf.seek(0)
+                tmp_content = tmp_buf.read()
+
+
+                buf = StringIO()
+                Unparser(tmp_brittle_tree, buf)
+                buf.seek(0)
+                edited_content = buf.read()
+
+                combination_path = first_com_path.split('.py')[0]+str(roundnum)+'.py'
+                roundnum+=1
+                with open(combination_path, "w") as combination:
+                    combination.write(edited_content)
+
+                if can_be_inserted:
+                    tmp_brittle_node_body.remove(this_round_insert_node)
+                
+                if brittle_test["class"]:
+                    tmp_fixed_brittle=combination_path + '::'+brittle_test["class"]+'::'+brittle_test["function"]
+                else:
+                    tmp_fixed_brittle=combination_path +'::'+brittle_test["function"]
+
+
+                can_patch_work = verify([tmp_fixed_brittle], "passed")
+                cache_in_tests.append(combination_path)
+
+                if can_patch_work:
+                    minimal_patch_file=combination_path
+                    patch_list.append(tmp_content)
+                    final_patch_content=tmp_content
+                    insert_node_list = this_round_insert_node
+                    n = max(n - 1, 2)
+                    state_is_set = True
+                    break
+                start = start + subset_length
+            if not state_is_set:
+                n = min(n * 2, len(insert_node_list))
+                if n == len(insert_node_list):
+                    break
+        end_time = time.perf_counter()
+        if minimal_patch_file:
+            patch_time_all = end_time - start_time
+            offset = 0
+            for each in this_round_insert_node:
+                offset+=each.col_offset  
+
+        # already got minimize patch
+        if minimal_patch_file:
+
+            insert_patch_to = victim_start_lineno-1
+            processed_patch_file = minimal_patch_file.replace('patch','processedpatch')
+            with open(brittle_test["module"], "r") as f:
+                org_contents = f.readlines()
+
+            with open(minimal_patch_file, "r") as patch:
+                tree_patch = ast.parse(patch.read())
+            patched_victim_node=get_victim_test_node(tree_patch,brittle_test)
+
+            final_patch=[]
+
+            tmp_content=final_patch_content
+            
+            patch_offset=0
+            for each in tmp_content.split('\n'):
+                if each !='':
+                    patch_offset+=1
+        
+            for num in range(1,patch_offset+1):
+                result =linecache.getline(minimal_patch_file,patched_victim_node.lineno+num)
+                final_patch.append(result)
+
+            org_contents.insert(insert_patch_to,''.join(final_patch))
+            buf =  StringIO()
+            if len(import_obj_list):
+                for each in import_obj_list:
+                    Unparser(each,buf)
+                    buf.seek(0)
+                    org_contents.insert(0,buf.read())
+
+            contents = "".join(org_contents)
+            with open(processed_patch_file, "w") as fnew:
+                fnew.write(contents)
+
+            for each in cache_in_tests:
+                os.remove(each)
+
+            diff=os.popen('diff '+brittle_test["module"]+' '+processed_patch_file).read()
+            if diff:
+                shutil.rmtree(combination_dir+'/__pycache__')
+                patch_name="{}patch/{}_patch_{}.patch".format(SAVE_DIR_MD5, file_name, md5)
+                if not os.path.exists(os.path.split(patch_name)[0]):
+                    os.makedirs(os.path.split(patch_name)[0])
+                _ = os.popen('diff -up ' + brittle_test["module"]+' '+processed_patch_file+ ' > '+patch_name).read()
+
+        for each in cache_in_tests:
+            if os.path.exists(each): os.remove(each)
+        
+
+    if diff:
+        saved_processed_patch_file = "{}patch/{}_PatchProcessed_{}.py#".format(SAVE_DIR_MD5, file_name, md5)
+        if not os.path.exists(os.path.split(saved_processed_patch_file)[0]):
+            os.makedirs(os.path.split(saved_processed_patch_file)[0])
+        if os.path.exists(patch_name):
+            shutil.move(processed_patch_file, saved_processed_patch_file)
+        return {
+                 "diff": diff,
+                 "patched_test_file": saved_processed_patch_file, 
+                 "patch_file": patch_name, 
+                 "time": patch_time_all, 
                 }
     else:
         return None
@@ -326,4 +545,3 @@ def get_fixed_polluters(all_polluter_list, patch_file, victim):
             fixed_polluters.append(each_polluter)
     
     return fixed_polluters
-    
