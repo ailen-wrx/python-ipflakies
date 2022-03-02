@@ -52,7 +52,7 @@ def random_analysis(test_list, results, nviter, nrerun, nseq):
                 failing_seq.append(seq_decoding(test_dict, i))
             print("[iDFlakies] {} is Non-deterministic.".format(test))
             flakies[test] = { "type": "NOD", 
-                            "detected_sequence": failing_seq }
+                            "detected_sequence": [failing_seq] }
             continue
         else:
             if set_passing and set_failing:
@@ -62,7 +62,7 @@ def random_analysis(test_list, results, nviter, nrerun, nseq):
                     if not verify(passing_seq, 'passed', rounds=nviter):
                         print("[iDFlakies] {} is Non-deterministic.".format(test))
                         flakies[test] = { "type": "NOD", 
-                                       "detected_sequence": passing_seq }
+                                       "detected_sequence": [passing_seq] }
                         NOD = True
                         break
                 if NOD: continue
@@ -71,7 +71,7 @@ def random_analysis(test_list, results, nviter, nrerun, nseq):
                     if not verify(failing_seq, 'failed', rounds=nviter):
                         print("[iDFlakies] {} is Non-deterministic.".format(test))
                         flakies[test] = { "type": "NOD", 
-                                       "detected_sequence": failing_seq }
+                                       "detected_sequence": [failing_seq] }
                         NOD = True
                         break
                 if not NOD: 

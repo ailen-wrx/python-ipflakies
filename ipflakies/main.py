@@ -11,6 +11,7 @@ import json
 import shutil
 import hashlib
 import random
+import functools
 
 
 data = dict()
@@ -33,7 +34,7 @@ def parse_args():
                         help="the order-dependency test to be fixed")
     parser.add_argument('-i', '--it', dest="iterations", type=int, required=False, default=100,
                         help="times of run when executing random tests")
-    parser.add_argument('-r', '--rep', dest="reproduce", required=False, action="store_true",
+    parser.add_argument('-r', '--rep', dest="reproduce", type=int, required=False, default=0,
                         help="rerun a test sequence in which the OD test is detected")
     parser.add_argument('-ls', '--list', dest="list", required=False, action="store_true",
                         help="list all flaky tests detected")
@@ -87,7 +88,7 @@ def main():
     if not os.path.exists(SAVE_DIR):
         os.makedirs(SAVE_DIR)
 
-    if repro or listonly:
+    if (repro != 0) or listonly:
         if os.path.exists(SAVE_DIR+'flakies.json'):
             with open(SAVE_DIR+'flakies.json','r') as load_f:
                 load_dict = json.load(load_f)
@@ -99,18 +100,23 @@ def main():
             
             if listonly:
                 exit(0)
+            
+            if (repro > len(keylist)):
+                print("Index out of range.\n")
+                exit(1)
 
-            key = int(input("Input the index of target OD test: "))
-            seqs = load_dict[keylist[key-1]]
+            key = repro
+            seqs = load_dict[keylist[repro-1]]
             print("{} is a {}.".format(keylist[key-1], seqs["type"]))
-            print("{} {} in the following test sequences:".format(keylist[key-1], "passes" if seqs["type"]=="brittle" else "fails"))
             seqlist = [_ for _ in seqs["detected_sequence"]]
-            for i, seq in enumerate(seqlist):
-                print(" [{}]".format(i+1))
-                for test in seq:
-                    print("    {}".format(test))
-            seq = int(input("Input the index of the test sequence to rerun: "))
-            rerun = seqs["detected_sequence"][seq-1]
+            shortest = functools.reduce(lambda x, y: x if len(x) < len(y) else y, seqlist)
+            print("Rerunning the shortest sequence:")
+            # for i, seq in enumerate(seqlist):
+            #     print(" [{}]".format(i+1))
+            #     for test in seq:
+            #         print("    {}".format(test))
+            # seq = int(input("Input the index of the test sequence to rerun: "))
+            rerun = shortest
             pytest_cmd(rerun + ["-v", "--tb=no"], True)
 
             exit(0)
