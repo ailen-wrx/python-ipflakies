@@ -51,5 +51,5 @@ optional arguments:
   --seq SEQ             number of passing or failing sequences to store when having detected a potential brittle or victim, default = 3
   --max-polluter MAXP   the maximum number of polluters taken into consideration, default = 0 (no limit)
   --patch-mode PATCH_MODE
-                        all: to detect all possible patches for the victim, (default) fisrt: to detect the first to fix all polluters
+                        all: to detect all possible patches for the victim, first: to detect the first to fix all polluters, default = "first"
 ```
