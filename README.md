@@ -15,12 +15,12 @@ python -m ipflakies -h
 ## Run
  - Be sure to first properly setup and install the dependencies required by your project and that you are able to run the project's test suite using `python3 -m pytest`.
 
-### iDFlakies
+### Detecting flaky tests
 ```bash
 python3 -m ipflakies -i {iteration}
 ```
 
-### iPFlakies
+### Fixing flaky tests
 ```bash
 python3 -m ipflakies -t {target OD-test}
 ```
